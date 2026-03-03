@@ -1,5 +1,10 @@
 # User Story: View Chat History
 
+## Prerequisites
+- New chat functionality implemented (from 07-new-chat)
+- User must be authenticated (login flow from 02-login)
+- AuthenticatedUser extractor implemented (see @specs/AUTH-MIDDLEWARE.md)
+
 ## Flow
 ```
 ChatHistoryView → SelectChat → ContinueChat

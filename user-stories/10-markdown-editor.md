@@ -1,5 +1,10 @@
 # User Story: Create/Edit Markdown File
 
+## Prerequisites
+- File creation implemented (from 10-create-file)
+- User must be authenticated (login flow from 02-login)
+- AuthenticatedUser extractor implemented (see @specs/AUTH-MIDDLEWARE.md)
+
 ## Flow
 ```
 FileEditor → CreateFile → SaveMarkdown

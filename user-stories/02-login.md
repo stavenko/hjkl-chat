@@ -1,5 +1,14 @@
 # User Story: Login
 
+## Prerequisites
+- S3Provider implemented (see @specs/BACKEND.md)
+- LocalFileSystemProvider implemented (see @specs/BACKEND.md)
+- SQLiteProvider implemented (see @specs/BACKEND.md)
+- SMTPProvider implemented (see @specs/BACKEND.md)
+- All providers wired into application startup and registered as Actix-web app data
+- User model and password hashing implemented (from registration)
+- Session model implemented (from registration)
+
 ## Flow
 ```
 LoginForm

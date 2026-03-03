@@ -75,6 +75,42 @@
             "output": 8192
           }
         },
+        "qwen3-coder-next": {
+          "name": "Qwen3-Coder-Next 80B-A3B",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
+        },
+        "glm-4.7-flash": {
+          "name": "GLM-4.7-Flash",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
+        },
+        "glm-4.7": {
+          "name": "GLM-4.7 (UD-Q2_K_XL)",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
+        },
+        "qwen3.5-122b": {
+          "name": "Qwen3.5-122B-A10B",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
+        },
         "qwen2.5-vl-7b": {
           "name": "Qwen2.5-VL 7B (Vision)",
           "tool_call": false,
@@ -129,7 +165,7 @@
       }
     }
   },
-  "model": "october/minimax-m25-kvq",
+  "model": "october/qwen3.5-122b",
   "permission": {
     "*": "allow"
   }

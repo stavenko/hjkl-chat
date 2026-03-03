@@ -1,5 +1,11 @@
 # User Story: Save File to User Space
 
+## Prerequisites
+- S3Provider and LocalFileSystemProvider implemented (see @specs/BACKEND.md)
+- New chat functionality implemented (from 07-new-chat)
+- User must be authenticated (login flow from 02-login)
+- AuthenticatedUser extractor implemented (see @specs/AUTH-MIDDLEWARE.md)
+
 ## Flow
 ```
 ChatMessage → Assistant generates file → Assistant calls SaveFile tool → File saved, link returned

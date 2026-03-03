@@ -1,5 +1,10 @@
 # User Story: Password Restore
 
+## Prerequisites
+- S3Provider, LocalFileSystemProvider, SQLiteProvider, SMTPProvider implemented (see @specs/BACKEND.md)
+- All providers wired into application startup and registered as Actix-web app data
+- User model and password hashing implemented (from registration)
+
 ## Flow
 ```
 PasswordRestoreRequestForm → PasswordRestoreVerifyForm → PasswordRestoreCompleteForm

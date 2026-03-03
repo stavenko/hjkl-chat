@@ -1,5 +1,10 @@
 # User Story: Create File Manually
 
+## Prerequisites
+- S3Provider and LocalFileSystemProvider implemented (see @specs/BACKEND.md)
+- User must be authenticated (login flow from 02-login)
+- AuthenticatedUser extractor implemented (see @specs/AUTH-MIDDLEWARE.md)
+
 ## Flow
 ```
 FileEditor → PathInput → PathSuggestions → SaveFile

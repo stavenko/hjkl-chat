@@ -7,95 +7,50 @@
   - **configurator** – function that registers all endpoints with the chosen HTTP framework (e.g., Express, FastAPI, etc.).
 - **usecases** – business‑logic functions invoked by endpoints.
 - **config** – server configuration.
-- **providers**
-  - **s3**
-  - **cache**
-  - **sqlite**
-  - **smtp**
-  - … other providers.
+- **providers** – one module per external dependency (see below).
 
-### Providers Overview
-Providers expose external functionality such as object storage, caches, or any third‑party service.
-They contain **no business logic**; they only wrap the external client, expose low‑level async methods, and translate low‑level errors into a provider‑specific error type.
-All business logic, key naming, and (de)serialization belong in **use‑cases**, which receive a provider instance as a dependency.
+### What Is a Provider
 
-#### S3Provider
-Wraps an S3-compatible client. Initialized with endpoint URL, bucket name, and credentials.
+A provider is a thin wrapper around a single external resource — a database, an object store, a mail server, a message queue, an HTTP API, a local filesystem, etc. Its only job is to expose low‑level async methods and translate low‑level errors into a provider‑specific error type.
+
+**Rules:**
+- A provider contains **no business logic**. No key naming, no (de)serialization, no domain concepts.
+- All business logic belongs in **use‑cases**, which receive one or more provider instances as dependencies.
+- Each provider defines its own error type (e.g., `SomeProviderError`) or maps to a common `ProviderError`.
+- A provider may depend on other providers when it needs them for its lifecycle (e.g., a provider that caches data from another provider).
+- A provider is initialized with a config struct and registered as application data so endpoints can access it.
+
+### Provider Examples
+
 ```text
-// S3Provider (generic pseudocode)
-class S3Provider {
-    constructor(endpoint, bucket, accessKey, secretKey) {
-        this.client = new S3Client(endpoint, accessKey, secretKey);
-        this.bucket = bucket;
+// SomeProvider wraps a single external client (pseudocode)
+class SomeProvider {
+    constructor(config) {
+        this.client = new ExternalClient(config.endpoint, config.credentials);
     }
 
-    // Retrieve an object by key
-    async get_object(key) -> bytes { /* ... */ }
-
-    // Store an object
-    async put_object(key, data) { /* ... */ }
-
-    // List objects under a prefix
-    async list_objects(prefix) -> [key] { /* ... */ }
-
-    // Delete an object
-    async delete_object(key) { /* ... */ }
-
-    // Check if an object exists and get metadata
-    async head_object(key) -> metadata { /* ... */ }
+    async do_something(input) -> result { /* ... */ }
+    async do_something_else(input) -> result { /* ... */ }
 }
 ```
-The provider returns an `S3Error` (or maps to a common `ProviderError`) and does **not** perform any domain‑specific processing.
 
-#### CacheProvider
-Local filesystem cache for S3 objects. Initialized with a cache directory path.
+A provider that depends on another provider for its lifecycle:
+
 ```text
-// CacheProvider (generic pseudocode)
-class CacheProvider {
-    constructor(cacheDir) {
-        this.cacheDir = cacheDir;
+// SomeOtherProvider depends on SomeProvider at init time (pseudocode)
+class SomeOtherProvider {
+    constructor(someProvider, config) {
+        // Use someProvider to bootstrap internal state
+        let data = someProvider.do_something(config.key);
+        this.internalState = process(data);
     }
 
-    // Get cached file path for a key, or None if not cached
-    get(key) -> Option<PathBuf> { /* ... */ }
-
-    // Write data to cache, return the local file path
-    put(key, data) -> PathBuf { /* ... */ }
-
-    // Remove a cached entry
-    evict(key) { /* ... */ }
+    async query(input) -> result { /* ... */ }
+    async flush(someProvider) { /* ... */ }
 }
 ```
-The provider manages only local file I/O and path mapping. No business logic, no network calls.
 
-#### SQLiteProvider
-Wraps a `rusqlite` connection. Initialized with an S3Provider, a CacheProvider, and the S3 object path of the database file. On construction it fetches the `.db` file from S3 through the cache and opens a connection.
-```text
-// SQLiteProvider (generic pseudocode)
-class SQLiteProvider {
-    constructor(s3Provider, cacheProvider, dbObjectPath) {
-        // 1. Check cache for the DB file
-        let localPath = cacheProvider.get(dbObjectPath);
-        if (localPath == None) {
-            // 2. Fetch from S3 and cache it
-            let data = s3Provider.get_object(dbObjectPath);
-            localPath = cacheProvider.put(dbObjectPath, data);
-        }
-        // 3. Open rusqlite connection
-        this.conn = sqlite::open(localPath);
-    }
-
-    // Execute a query, return rows
-    async query(sql, params) -> rows { /* ... */ }
-
-    // Execute a statement (INSERT, UPDATE, DELETE)
-    async execute(sql, params) -> affected_rows { /* ... */ }
-
-    // Flush: write the current DB file back to S3
-    async flush(s3Provider, cacheProvider) { /* ... */ }
-}
-```
-The provider owns only the connection lifecycle and raw SQL execution. Schema design, migrations, and query composition belong in use‑cases.
+`SomeOtherProvider` owns only its internal state and raw operations. Higher‑level logic (what to query, when to flush) belongs in use‑cases.
 
 ## Services Overview
 
@@ -129,11 +84,11 @@ Each `addRoute` call binds an HTTP method and path to the corresponding handler 
 async function newMessageHandler(request) {
     // 1️⃣ Parse the incoming request payload (e.g., JSON body) into the input shape expected by the use‑case.
     const input = request.body;
-    // 2️⃣ Retrieve any required provider(s) from the request context (e.g., S3, cache, SQLite).
-    const s3 = request.context.s3Provider;
-    const sqlite = request.context.sqliteProvider;
+    // 2️⃣ Retrieve any required provider(s) from the request context.
+    const providerA = request.context.someProvider;
+    const providerB = request.context.someOtherProvider;
     // 3️⃣ Invoke the appropriate use‑case, passing the input and provider(s). No business logic lives here.
-    const result = await useCaseCommand(input, s3, sqlite);
+    const result = await useCaseCommand(input, providerA, providerB);
     // 4️⃣ Convert the use‑case result (or error) into a generic HTTP response object.
     return httpResponseFromResult(result);
 }
@@ -143,15 +98,15 @@ async function newMessageHandler(request) {
 
 ```text
 // Generic use‑case example (pseudocode)
-function useCase(input, s3Provider, sqliteProvider) {
+function useCase(input, providerA, providerB) {
     // 1. Build queries or commands based on input
-    const query = "SELECT * FROM users WHERE id = ?";
-    // 2. Interact with the provider
-    const result = await sqliteProvider.query(query, [input.userId]);
-    // 3. Process the raw result into the desired output shape
-    const output = transformResult(result);
+    const rawData = await providerA.do_something(input.key);
+    // 2. Apply business logic and transformations
+    const processed = transformData(rawData);
+    // 3. Persist via another provider if needed
+    await providerB.do_something_else(processed);
     // 4. Return output or throw an error object
-    return output;
+    return processed;
 }
 ```
 

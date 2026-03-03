@@ -1,5 +1,11 @@
 # User Story: Authentication Error Handling
 
+## Prerequisites
+- Registration flow implemented (from 01-registration)
+- Login flow implemented (from 02-login)
+- Password restore flow implemented (from 04-password-restore)
+- Password change flow implemented (from 05-password-change)
+
 ## Flow
 ```
 Any Form → Error Display

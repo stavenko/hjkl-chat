@@ -1,7 +1,8 @@
 # User Story: Create/Edit Markdown File
 
 ## Prerequisites
-- File creation implemented (from 10-create-file)
+- File creation implemented (from 11-create-file)
+- Files browser implemented (from 07-files-browser)
 - User must be authenticated (login flow from 02-login)
 - AuthenticatedUser extractor implemented (see @specs/AUTH-MIDDLEWARE.md)
 

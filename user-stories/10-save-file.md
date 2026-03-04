@@ -1,8 +1,9 @@
 # User Story: Save File to User Space
 
 ## Prerequisites
+- Files browser implemented (from 07-files-browser)
 - S3Provider and LocalFileSystemProvider implemented (see @specs/BACKEND.md)
-- New chat functionality implemented (from 07-new-chat)
+- New chat functionality implemented (from 08-new-chat)
 - User must be authenticated (login flow from 02-login)
 - AuthenticatedUser extractor implemented (see @specs/AUTH-MIDDLEWARE.md)
 

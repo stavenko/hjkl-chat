@@ -9,6 +9,13 @@
 - User model and password hashing implemented (from registration)
 - Session model implemented (from registration)
 
+## Frontend Prerequisites
+- Frontend project bootstrapped with Leptos CSR and trunk (see @specs/FRONTEND.md)
+- Frontend routing implemented in app.rs (see @specs/GENERIC-FRONTEND.md)
+- Reusable form components implemented: TextInput, Button (see @specs/GENERIC-FRONTEND.md)
+- AuthState implemented for token storage (see @specs/GENERIC-FRONTEND.md)
+- auth_service module created with API base URL configuration (see @specs/GENERIC-FRONTEND.md)
+
 ## Flow
 ```
 LoginForm

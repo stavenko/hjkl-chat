@@ -5,6 +5,12 @@
 - All providers wired into application startup and registered as Actix-web app data
 - User model and password hashing implemented (from registration)
 
+## Frontend Prerequisites
+- Frontend project bootstrapped with Leptos CSR and trunk (see @specs/FRONTEND.md)
+- Frontend routing implemented in app.rs (see @specs/GENERIC-FRONTEND.md)
+- Reusable form components implemented: TextInput, Button, PasswordStrength (see @specs/GENERIC-FRONTEND.md)
+- auth_service module created with API base URL configuration (see @specs/GENERIC-FRONTEND.md)
+
 ## Flow
 ```
 PasswordRestoreRequestForm → PasswordRestoreVerifyForm → PasswordRestoreCompleteForm

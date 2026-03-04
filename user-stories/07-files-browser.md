@@ -4,6 +4,13 @@
 - User must be authenticated (login flow from 02-login)
 - Design system components implemented (see Design System section below)
 
+## Frontend Prerequisites
+- Frontend project bootstrapped with Leptos CSR and trunk (see @specs/FRONTEND.md)
+- Frontend routing implemented in app.rs (see @specs/GENERIC-FRONTEND.md)
+- AuthState implemented — user must be logged in to access this page (see @specs/GENERIC-FRONTEND.md)
+- Reusable components implemented: TextInput, Button (see @specs/GENERIC-FRONTEND.md)
+- files_service module created with API base URL configuration (see @specs/GENERIC-FRONTEND.md)
+
 ## Flow
 ```
 FilesBrowser → (ToggleProject) → (AddProject | AddFile | Filter | OpenFile)

@@ -7,6 +7,13 @@
 - Login endpoint implemented (user must be authenticated)
 - AuthenticatedUser extractor implemented (see @specs/AUTH-MIDDLEWARE.md)
 
+## Frontend Prerequisites
+- Frontend project bootstrapped with Leptos CSR and trunk (see @specs/FRONTEND.md)
+- Frontend routing implemented in app.rs (see @specs/GENERIC-FRONTEND.md)
+- Reusable form components implemented: TextInput, Button, PasswordStrength (see @specs/GENERIC-FRONTEND.md)
+- AuthState implemented — user must be logged in to access this page (see @specs/GENERIC-FRONTEND.md)
+- auth_service module created with API base URL configuration (see @specs/GENERIC-FRONTEND.md)
+
 ## Flow
 ```
 PasswordChangeForm

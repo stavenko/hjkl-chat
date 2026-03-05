@@ -30,3 +30,23 @@ LogoutForm
   "message": "Logged out successfully"
 }
 ```
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `POST /api/auth/logout` — accepts `refresh_token`, invalidates the session in SQLite, returns success
+- [ ] Request requires valid `Authorization: Bearer <access_token>` header (uses `AuthenticatedUser` extractor)
+- [ ] Integration tests cover: successful logout, logout with invalid token, logout with already-invalidated session
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+
+### Frontend
+- [ ] Logout action callable from authenticated UI (button or menu item)
+- [ ] Calls `auth_service::logout` with the stored refresh token
+- [ ] On success, `AuthState` is cleared, tokens are removed from `localStorage`
+- [ ] User is navigated to `/login` after logout
+- [ ] `auth_service` module implements `logout` async function
+- [ ] Frontend unit tests pass — logout clears state, navigation occurs after logout

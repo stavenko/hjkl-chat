@@ -189,3 +189,27 @@ The following components/tokens must be implemented:
 - `projects`: array (fetched from API)
 - `expandedProjects`: array (from localStorage)
 - `filesByProject`: map (project_id → files array)
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `GET /api/projects` — returns list of projects for the authenticated user with `id`, `name`, `description`, `file_count`, `updated_at`
+- [ ] `GET /api/files/project/:project_id` — returns list of files in the project with `id`, `name`, `path`, `size`, `created_at`, `updated_at`
+- [ ] `POST /api/projects` — creates a new project with `name` and optional `description`, returns the created project
+- [ ] All three endpoints require valid `Authorization: Bearer <access_token>` header
+- [ ] Integration tests cover: list projects (empty and populated), list files by project, create project, unauthorized access rejected, non-existent project returns error
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+
+### Frontend
+- [ ] `FilesBrowserPage` exists at route `/files`, requires authenticated user (redirects to `/login` if not authenticated)
+- [ ] `ProjectAccordion` component — displays projects as expandable/collapsible items, toggle state persisted in `localStorage` under key `files-browser-expanded-projects`
+- [ ] `AddProjectButton` component — opens modal with project name input, on submit calls `files_service::create_project`, refreshes project list
+- [ ] `AddFileButton` component — visible within expanded projects, navigates to create-file view
+- [ ] `FileList` component — displays files with alternating row styles (`file-odd`/`file-even`), long filenames wrap to max 2 lines, clicking a file opens it
+- [ ] `FilterInput` component — positioned at bottom, filters projects and files in expanded projects by name when >=1 character entered
+- [ ] `files_service` module implements `list_projects`, `list_files_by_project`, `create_project` async functions with `Authorization: Bearer` header
+- [ ] Frontend unit tests pass — accordion toggle, filter logic, project creation flow, service function mocking

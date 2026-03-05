@@ -77,3 +77,25 @@ PasswordChangeForm
   "message": "Current password is incorrect"
 }
 ```
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `POST /api/auth/password/change` — accepts `current_password`, `new_password`, `new_password_confirm`, validates current password, updates hash in SQLite, returns success
+- [ ] Request requires valid `Authorization: Bearer <access_token>` header (uses `AuthenticatedUser` extractor)
+- [ ] Wrong current password returns `{"status": "error", "message": "Current password is incorrect"}`
+- [ ] Integration tests cover: successful password change, wrong current password, new password mismatch, unauthenticated request rejected
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+
+### Frontend
+- [ ] `PasswordChangePage` exists at route `/password/change`, requires authenticated user (redirects to `/login` if not authenticated)
+- [ ] `PasswordChangeForm` — current password, new password, and confirm fields with `TextInput`, `PasswordStrength` indicator on new password, `Button` disabled until new passwords match and strength is sufficient
+- [ ] Server error (wrong current password) displayed inline on the current password field via `Input / Error` component
+- [ ] `auth_service` module implements `password_change` async function that sends `Authorization: Bearer` header
+- [ ] On successful password change, user sees success confirmation
+- [ ] Client-side validation: new password mismatch shows inline error via `Input / Error`
+- [ ] Frontend unit tests pass — form validation, error display on wrong current password, authenticated request header, service function mocking

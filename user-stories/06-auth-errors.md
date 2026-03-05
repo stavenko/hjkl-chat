@@ -119,3 +119,26 @@ Shown immediately as the user types, before any API call.
   "retry_after": 60
 }
 ```
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] All auth endpoints (`registration/init`, `registration/verify`, `registration/complete`, `login`, `logout`, `password/restore/init`, `password/restore/verify`, `password/restore/complete`, `password/change`) return consistent error format: `{"status": "error", "message": "..."}` or `{"status": "error", "errors": [{"field": "...", "message": "..."}]}`
+- [ ] Validation errors include `field` name so the frontend can display inline errors on the correct input
+- [ ] Rate limiting returns `retry_after` field with seconds to wait
+- [ ] Expired/invalid session returns `"Session expired or invalid"` message
+- [ ] Integration tests cover: each error type triggers correct response format, rate limiting returns `retry_after`, field-level validation errors include field names
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+
+### Frontend
+- [ ] `TextInput` component with `Input / Error` variant renders red border and error message below the field when error signal is set
+- [ ] `Button` component supports `Primary` (active) and `Disabled` states controlled by `disabled` prop
+- [ ] Client-side validation errors appear immediately as the user types (email format, password mismatch)
+- [ ] Server-side errors (wrong credentials, wrong current password) are displayed inline on the correct field after form submission
+- [ ] Error signal is cleared when the user modifies the field
+- [ ] No toasts, modals, or global error banners — all feedback is inline within forms
+- [ ] Frontend unit tests pass — error component rendering, error clearing on input change, field-level error mapping from server response

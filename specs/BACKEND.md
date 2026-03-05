@@ -15,20 +15,27 @@ Backend shall have:
 
 ### LocalFileSystemProvider
 
-Caches objects fetched from S3 to avoid repeated downloads.
+Used to keep some objects from network in local cache directory.
+This directory may be provided by docker or k8s. So it is necessary to write
+only within directory `root`, with which it is initialized.
+
+Can keep many files within itself, So it
+
+**Initialization:**
+
+- `new(root: PathBuf) -> Result<Self>`
+  - Tries to make emtpy file in the root, then constructs itself and returns.
 
 **Methods:**
 
 - `save(object: Vec<u8>) -> PathBuf`
-  - Saves a byte array to the local filesystem.
+  - Saves a byte array to the local filesystem with randomized name .
+  - Stores under own root.
   - Returns the path to the saved file.
 
-- `path(object_id: &str) -> Option<PathBuf>`
-  - Returns the filesystem path for a stored object.
-  - Returns `None` if the object is not cached.
-
-- `delete(object_id: &str) -> Result<()>`
+- `delete(PathBuf: &str) -> Result<()>`
   - Removes the stored object from the filesystem.
+  - Only can remove files relative to the directory.
 
 - `read(object_id: &str) -> Result<Vec<u8>>`
   - Reads and returns the contents of a stored object as `Vec<u8>`.
@@ -56,7 +63,28 @@ Query engine over a SQLite database stored in S3 and cached locally.
     - Uploads the file back to S3 using the S3Provider.
   - Returns nothing to the caller (fire-and-forget).
 
+## CLI
+
+All startup logic is implemented in `cli.rs`.
+
+Command-line arguments are parsed using `clap`.
+
+**Commands:**
+
+- `run --config <CONFIG-PATH>`
+  - Loads configuration from the specified path.
+  - Executes the startup sequence.
+  - Starts the Actix HTTP server.
+
+- `download-sqlite --config <CONFIG-PATH>`
+  - Loads configuration from the specified path.
+  - Downloads the SQLite database file from S3.
+  - Saves it to the local filesystem cache.
+  - Exits without starting the server.
+
 ## Startup Sequence
+
+The `run` command performs the following steps:
 
 1. **S3Provider** – connect to S3-compatible storage, verify bucket exists.
 2. **LocalFileSystemProvider** – initialize local cache directory.

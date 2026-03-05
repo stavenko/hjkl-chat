@@ -61,3 +61,25 @@ FileEditor → CreateFile → SaveMarkdown
   }
 }
 ```
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `POST /api/files` — creates a new markdown file with `filename` and `content`, stores in S3, returns file metadata
+- [ ] `PUT /api/files/:id` — updates existing file content in S3, returns updated file metadata with new `updated_at`
+- [ ] Both endpoints require valid `Authorization: Bearer <access_token>` header
+- [ ] User can only update their own files
+- [ ] Integration tests cover: create markdown file, update existing file, content persisted in S3, unauthorized access rejected, update non-existent file returns error, cross-user update rejected
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, MinIO, and required dependencies
+
+### Frontend
+- [ ] `FileEditorPage` — markdown editor view opened when clicking a file in the files browser or creating a new file
+- [ ] Markdown editor component with text editing area for raw markdown input
+- [ ] Markdown preview component rendering the markdown content as formatted HTML
+- [ ] Save button calls `files_service::create_file` (new file) or `files_service::update_file` (existing file)
+- [ ] `files_service` module implements `update_file` async function with `Authorization: Bearer` header
+- [ ] Frontend unit tests pass — editor rendering, preview rendering, save flow for new and existing files, service function mocking

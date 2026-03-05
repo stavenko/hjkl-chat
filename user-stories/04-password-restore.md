@@ -122,3 +122,26 @@ PasswordRestoreRequestForm → PasswordRestoreVerifyForm → PasswordRestoreComp
   "message": "Password restored successfully"
 }
 ```
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `POST /api/auth/password/restore/init` — accepts `email`, sends reset code via SMTP, returns `resend_available_at`
+- [ ] `POST /api/auth/password/restore/verify` — accepts `email` and `code`, validates code, returns `session_id`
+- [ ] `POST /api/auth/password/restore/complete` — accepts `session_id`, `password`, `password_confirm`, updates password hash in SQLite, returns success
+- [ ] Integration tests cover: full restore flow end-to-end, wrong code rejected, expired session rejected, password mismatch rejected, non-existent email handled gracefully
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+
+### Frontend
+- [ ] `PasswordRestorePage` exists at route `/password/restore` with three-step flow (init → verify → complete)
+- [ ] `PasswordRestoreRequestForm` — email field with `TextInput`, `Button` disabled until email is valid, "Back to Sign In" link navigates to `/login`, calls `auth_service::password_restore_init`
+- [ ] `PasswordRestoreVerifyForm` — code field with `TextInput`, countdown timer from `resend_available_at`, resend link active after countdown, calls `auth_service::password_restore_verify`
+- [ ] `PasswordRestoreCompleteForm` — password and confirm fields with `TextInput`, `PasswordStrength` indicator, `Button` disabled until passwords match and strength is sufficient, calls `auth_service::password_restore_complete`
+- [ ] `auth_service` module implements `password_restore_init`, `password_restore_verify`, `password_restore_complete` async functions
+- [ ] On successful password restore, user is navigated to `/login`
+- [ ] Client-side validation: password mismatch shows inline error via `Input / Error`
+- [ ] Frontend unit tests pass — component rendering, validation logic, countdown timer behavior, service function mocking

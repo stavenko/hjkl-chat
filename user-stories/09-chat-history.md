@@ -50,3 +50,24 @@ ChatHistoryView → SelectChat → ContinueChat
   }
 }
 ```
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `GET /api/chat` — returns list of user's chats with `id`, `title`, `preview`, `updated_at`, `message_count`
+- [ ] `GET /api/chat/:id` — returns full chat with all messages (role, content, created_at)
+- [ ] Both endpoints require valid `Authorization: Bearer <access_token>` header
+- [ ] User can only see their own chats (not other users' chats)
+- [ ] Integration tests cover: list chats (empty and populated), get single chat with messages, unauthorized access rejected, non-existent chat returns error, cross-user access rejected
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+
+### Frontend
+- [ ] `ChatHistoryPage` — displays list of user's chats with title, preview, and timestamp
+- [ ] Selecting a chat loads full message history via `chat_service::get_chat` and displays it
+- [ ] User can continue a conversation from the loaded chat
+- [ ] `chat_service` module implements `list_chats` and `get_chat` async functions with `Authorization: Bearer` header
+- [ ] Frontend unit tests pass — chat list rendering, chat loading, message display, service function mocking

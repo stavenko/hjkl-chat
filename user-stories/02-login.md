@@ -79,3 +79,25 @@ LoginForm
   "message": "Invalid email or password"
 }
 ```
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `POST /api/auth/login` — accepts `email` and `password`, validates credentials against SQLite, returns `user`, `access_token`, `refresh_token` on success
+- [ ] Wrong credentials return `{"status": "error", "message": "Invalid email or password"}` with appropriate HTTP status
+- [ ] Integration tests cover: successful login, wrong password, non-existent email, missing fields
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+
+### Frontend
+- [ ] `LoginPage` exists at route `/login`
+- [ ] `LoginForm` — email and password fields with `TextInput`, `Button` disabled until both fields are filled, calls `auth_service::login`
+- [ ] Server error (wrong credentials) displayed inline on the password field via `Input / Error` component
+- [ ] "Forgot password?" link navigates to `/password/restore`
+- [ ] "Don't have an account? Register" link navigates to `/register`
+- [ ] `auth_service` module implements `login` async function
+- [ ] On successful login, tokens are stored in `AuthState` and `localStorage`, user is navigated to home
+- [ ] Frontend unit tests pass — form validation, error display on failed login, service function mocking

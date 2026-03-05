@@ -135,3 +135,26 @@ RegistrationForm → Email Verification → CompleteRegistrationForm
   "refresh_token": "jwt-token"
 }
 ```
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `POST /api/auth/registration/init` — accepts email, sends verification email via SMTP, returns `session_id` and `resend_available_at`
+- [ ] `POST /api/auth/registration/verify` — accepts `session_id` and `code`, validates the code, returns `session_id` and `expires_at`
+- [ ] `POST /api/auth/registration/complete` — accepts `session_id`, `password`, `password_confirm`, creates user in SQLite, returns `user`, `access_token`, `refresh_token`
+- [ ] Integration tests cover: successful registration flow end-to-end, invalid email format rejected, wrong verification code rejected, expired session rejected, password mismatch rejected
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
+
+### Frontend
+- [ ] `RegistrationPage` exists at route `/register` with three-step flow (init → verify → complete)
+- [ ] `RegistrationForm` component — email field with `TextInput`, submit `Button` disabled until email is valid, calls `auth_service::registration_init`
+- [ ] `EmailVerificationForm` component — code field with `TextInput`, countdown timer from `resend_available_at`, resend link active after countdown, calls `auth_service::registration_verify`
+- [ ] `CompleteRegistrationForm` component — password and confirm fields with `TextInput`, `PasswordStrength` indicator, `Button` disabled until passwords match and strength is sufficient, calls `auth_service::registration_complete`
+- [ ] `auth_service` module implements `registration_init`, `registration_verify`, `registration_complete` async functions
+- [ ] On successful completion, tokens are stored in `AuthState` and `localStorage`, user is navigated away from registration
+- [ ] Client-side validation: invalid email shows inline error via `Input / Error`, password mismatch shows inline error
+- [ ] Frontend unit tests pass — component rendering, validation logic, service function mocking

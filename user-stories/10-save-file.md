@@ -53,3 +53,21 @@ ChatMessage → Assistant generates file → Assistant calls SaveFile tool → F
 ---
 
 **UI:** User sees a clickable link in chat that opens the saved file content.
+
+---
+
+## Acceptance Criteria
+
+### Backend
+- [ ] `SaveFile` tool is available to the LLM during chat — accepts `path`, `content`, `tags`, stores file in S3 under `{user_id}/{path}`
+- [ ] Tool automatically links saved file to the current chat via `root_document`
+- [ ] File metadata (id, path, tags, root_document) is persisted in SQLite
+- [ ] Integration tests cover: save file via tool, file appears in S3, metadata stored in SQLite, file linked to chat, duplicate path handling
+- [ ] `cargo test` — all tests pass, zero failures
+- [ ] Backend starts with config file, serves HTTP on configured port
+- [ ] `docker-compose.yml` includes backend, frontend, MinIO, and required dependencies
+
+### Frontend
+- [ ] Chat messages containing `file://uuid` links render as clickable links
+- [ ] Clicking a file link opens the saved file content (navigates to file view or displays inline)
+- [ ] Frontend unit tests pass — file link detection and rendering in chat messages

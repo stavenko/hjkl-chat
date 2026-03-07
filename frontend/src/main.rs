@@ -8,7 +8,11 @@ fn App() -> impl IntoView {
 }
 
 #[wasm_bindgen::prelude::wasm_bindgen]
-pub fn main() {
+pub fn run() {
     console_error_panic_hook::set_once();
     mount_to_body(App);
+}
+
+fn main() {
+    run();
 }

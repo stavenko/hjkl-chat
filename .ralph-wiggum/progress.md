@@ -2,9 +2,9 @@
 
 ## Status
 **Last Updated:** 2026-03-07
-**Tasks Completed:** 7
-**Current Task:** None (2 fix tasks pending)
-**Pending Tasks:** 2 fix tasks from review (00-task-fix-05, and one more)
+**Tasks Completed:** 8
+**Current Task:** None (1 fix task pending)
+**Pending Tasks:** 1 fix task from review (00-task-fix-05 completed, no pending fix tasks)
 
 ---
 
@@ -86,13 +86,21 @@
      - cargo clippy -p frontend -- -D warnings: PASS
      - Satisfies both Rust compiler and clippy requirements
 - Completed task 00-task-fix-04-create-generic-frontend-spec.md: Created missing GENERIC-FRONTEND.md spec file with comprehensive frontend architecture patterns:
-     - Created specs/GENERIC-FRONTEND.md with all six required sections
-     - Component Pattern: Leptos component structure, props pattern, file organization
-     - Page Pattern: Page structure, layout composition, routing integration
-     - Service Pattern: API service structure, error handling, request/response typing
-     - Form Pattern: Form state management, validation patterns, submission handling
-     - Routing Pattern: Leptos routing setup, nested routes, route guards
-     - State Management Pattern: Signals, resources, Context API, localStorage integration
-     - Patterns consistent with GENERIC-BACKEND.md style
-     - Examples use Leptos 0.6 syntax
-     - Aligns with FRONTEND.md requirements
+      - Created specs/GENERIC-FRONTEND.md with all six required sections
+      - Component Pattern: Leptos component structure, props pattern, file organization
+      - Page Pattern: Page structure, layout composition, routing integration
+      - Service Pattern: API service structure, error handling, request/response typing
+      - Form Pattern: Form state management, validation patterns, submission handling
+      - Routing Pattern: Leptos routing setup, nested routes, route guards
+      - State Management Pattern: Signals, resources, Context API, localStorage integration
+      - Patterns consistent with GENERIC-BACKEND.md style
+      - Examples use Leptos 0.6 syntax
+      - Aligns with FRONTEND.md requirements
+- Completed task 00-task-fix-05-add-api-base-url-initialization.md: Added API base URL initialization to frontend as required by specs/FRONTEND.md:
+      - Created frontend/src/services.rs with init_api_base_url() and get_api_base_url()
+      - Updated frontend/src/main.rs to call services::init_api_base_url().await before mount_to_body(App)
+      - Renamed #[wasm_bindgen] exported function from run() to main() per spec
+      - Added dependencies: reqwest (wasm-streams, json features), once_cell
+      - cargo build -p frontend: PASS (no warnings)
+      - cargo clippy -p frontend -- -D warnings: PASS
+      - Implementation follows exact pattern from FRONTEND.md lines 117-124

@@ -7,12 +7,14 @@ fn App() -> impl IntoView {
     }
 }
 
-#[wasm_bindgen::prelude::wasm_bindgen]
-pub fn run() {
-    console_error_panic_hook::set_once();
-    mount_to_body(App);
-}
+mod services;
 
-fn main() {
-    run();
+#[allow(clippy::main_recursion)]
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub fn main() {
+    console_error_panic_hook::set_once();
+    leptos::spawn_local(async {
+        services::init_api_base_url().await;
+        mount_to_body(App);
+    });
 }

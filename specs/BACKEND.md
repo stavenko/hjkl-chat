@@ -185,6 +185,11 @@ username = ""
 password = ""
 
 ```
+Config MUST NOT have a default config. It is never must be constructed in code -
+only read from file. Even for testing purpose.
+
+
+
 ## Error handling
 
 Each endpoint must be very simple:

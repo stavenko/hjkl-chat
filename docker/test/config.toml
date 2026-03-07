@@ -16,7 +16,7 @@ s3_object_path = "test.db"
 
 [smtp]
 host = "localhost"
-port = "1025"
-use_tls = "false"
+port = 1025
+use_tls = false
 username = ""
 password = ""

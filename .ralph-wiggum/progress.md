@@ -137,3 +137,16 @@ Created because all bootstrap fix tasks are complete and user story 00-bootstrap
    - Proper test isolation with unique_email() and temp_sqlite_path()
    - cargo check --workspace: PASS (8 acceptable warnings for unused code)
    - cargo test -p backend: PASS (27 passed, 11 ignored - external services)
+- Created task 01-manual-testing-login-backend.md: Manual verification script to test all acceptance criteria from user story 01-login.md. Created because 01-test-login-backend.md was a test task. The manual-testing task will verify:
+    - Backend: POST /api/auth/login endpoint with curl requests, wrong credentials error handling, test results, server startup
+    - Frontend: LoginPage at /login route, LoginForm with email/password fields, button disabled state, error display, navigation links
+    - All backend and frontend criteria from the user story using headless chrome for DOM verification
+- Completed task 01-manual-testing-login-backend.md: Executed manual verification of all acceptance criteria:
+    - Backend build: PASS (cargo check, cargo build succeed with acceptable warnings)
+    - Backend tests: PASS (27 passed, 0 failed, 11 ignored - external services)
+    - Backend HTTP endpoints: CANNOT VERIFY (requires MinIO service to start)
+    - docker-compose.yml: PASS (includes backend, frontend, MinIO, MailHog)
+    - Frontend implementation: FAIL (login page, form, auth_service, routing not implemented)
+    - Frontend DOM verification: CANNOT VERIFY (chromium not installed, but code not implemented anyway)
+    - Overall result: FAIL - Backend is functional (verified via integration tests), but frontend is not implemented
+    - Report written to /project/.ralph-wiggum/reports/01-manual-testing-login-backend.md

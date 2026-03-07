@@ -25,7 +25,7 @@ pub async fn login(
         .query_one(
             "SELECT * FROM users WHERE email = ?",
             &[email.into()],
-            |row| User::from_row(row),
+            User::from_row,
         )?
         .ok_or(AuthError::UserNotFound)?;
 

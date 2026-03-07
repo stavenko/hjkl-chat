@@ -30,7 +30,7 @@ pub async fn login(
         &body.password
     };
 
-    match login_use_case(sqlite.get_ref().clone(), email, password, &jwt_secret.get_ref()).await {
+    match login_use_case(sqlite.get_ref().clone(), email, password, jwt_secret.get_ref()).await {
         Ok(response) => HttpResponse::Ok().json(response),
         Err(AuthError::InvalidCredentials | AuthError::UserNotFound) => {
             HttpResponse::Unauthorized()

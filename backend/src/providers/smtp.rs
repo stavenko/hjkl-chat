@@ -23,24 +23,17 @@ impl SMTPProvider {
     pub fn new(
         host: &str,
         port: u16,
-        use_tls: bool,
+        _use_tls: bool,
         username: &str,
         password: &str,
         from_email: &str,
     ) -> SMTPProviderResult<Self> {
         let creds = Credentials::new(username.to_string(), password.to_string());
 
-        let transporter = if use_tls {
-            AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(host)
-                .port(port)
-                .credentials(creds)
-                .build()
-        } else {
-            AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(host)
-                .port(port)
-                .credentials(creds)
-                .build()
-        };
+        let transporter = AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(host)
+            .port(port)
+            .credentials(creds)
+            .build();
 
         let from_address = from_email.parse::<Mailbox>()?;
 
@@ -64,7 +57,7 @@ impl SMTPProvider {
             .subject(subject)
             .body(body.to_string())?;
 
-        self.transporter.send(email).await.map_err(|e| SMTPProviderError::SmtpTransport(e))?;
+        self.transporter.send(email).await.map_err(SMTPProviderError::SmtpTransport)?;
         Ok(())
     }
 }

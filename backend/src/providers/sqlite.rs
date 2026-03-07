@@ -46,8 +46,7 @@ impl SQLiteProvider {
     ) -> SQLiteProviderResult<Self> {
         let db_path = if s3_provider.object_exists(s3_object_path).await? {
             let data = s3_provider.get_object(s3_object_path).await?;
-            let path = fs_provider.save(data)?;
-            path
+            fs_provider.save(data)?
         } else {
             let path = fs_provider.get_path(s3_object_path)?;
             let conn = Connection::open(&path)?;
@@ -98,7 +97,7 @@ impl SQLiteProvider {
         let value_params: Vec<rusqlite::types::Value> = params.iter().map(|v| rusqlite::types::Value::from(*v)).collect();
         let mut rows = stmt.query(rusqlite::params_from_iter(value_params))?;
         if let Some(row) = rows.next()? {
-            Ok(Some(f(&row)?))
+            Ok(Some(f(row)?))
         } else {
             Ok(None)
         }
@@ -114,7 +113,7 @@ impl SQLiteProvider {
         let mut rows = stmt.query(rusqlite::params_from_iter(value_params))?;
         let mut results = Vec::new();
         while let Some(row) = rows.next()? {
-            results.push(f(&row)?);
+            results.push(f(row)?);
         }
         Ok(results)
     }

@@ -2,9 +2,9 @@
 
 ## Status
 **Last Updated:** 2026-03-07
-**Tasks Completed:** 4
-**Current Task:** None (5 fix tasks created and pending)
-**Pending Tasks:** 5 fix tasks from review
+**Tasks Completed:** 5
+**Current Task:** None (4 fix tasks pending)
+**Pending Tasks:** 4 fix tasks from review
 
 ---
 
@@ -68,3 +68,7 @@
      * 00-task-fix-03-fix-main-recursion-warning.md: Fix main recursion warning in frontend
      * 00-task-fix-04-create-generic-frontend-spec.md: Create missing GENERIC-FRONTEND.md spec
      * 00-task-fix-05-add-api-base-url-initialization.md: Add API base URL initialization to frontend
+- Completed task 00-task-fix-01-remove-dead-code-warning.md: Added #[allow(dead_code)] attribute with explanatory comment to Config struct in backend/src/config.rs:
+   - cargo build -p backend: PASS (dead_code warning resolved)
+   - Comment explains why #[allow(dead_code)] is necessary
+   - Note: Separate clippy warning about manual Default impl identified in task 00-task-fix-02

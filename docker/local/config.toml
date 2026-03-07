@@ -1,0 +1,22 @@
+addr = "0.0.0.0"
+port = 5000
+
+[s3]
+bucket = "local-bucket"
+region = "us-east-1"
+client_id = "minioadmin"
+client_secret = "minioadmin"
+host = "http://minio:9000"
+
+[local_fs]
+root_path = "/app/local-fs"
+
+[sqlite]
+s3_object_path = "app.db"
+
+[smtp]
+host = "mailhog"
+port = "1025"
+use_tls = "false"
+username = ""
+password = ""

@@ -34,11 +34,11 @@ Each crate must have its own `Cargo.toml` with minimal dependencies to compile. 
 ### 2. Backend Crate Skeleton
 
 Set up module structure per GENERIC-BACKEND.md and RUST-COMMON-SPEC.md:
-- `src/main.rs` — entry point
+- `src/main.rs` — entry point calls cli.rs
 - `src/config.rs` — empty config struct (will be filled by later stories)
-- `src/api/` — configurator module (empty route registration)
-- `src/providers/` — module declarations only (no provider implementations yet)
-- `src/usecases/` — module declarations only
+- `src/cli.rs` - command line parsing and entry point
+- `src/api_error.rs` - ApiError struct
+- `src/api_response.rs` - ApiResponse enum.
 
 No stubs. Only declare modules that have real code. An empty `main` that starts actix-web with no routes is fine.
 

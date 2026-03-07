@@ -112,9 +112,28 @@ Created because all bootstrap fix tasks are complete and user story 00-bootstrap
        - cargo clippy -p frontend -- -D warnings: PASS
        - Implementation follows exact pattern from FRONTEND.md lines 117-124
 - Completed task 01-task-login-backend.md: Verified and fixed login backend implementation:
-       - All providers, models, use-cases, and endpoints were already implemented from bootstrap
-       - Fixed bcrypt password verification in use_cases/auth.rs to check boolean result (returns Ok(false) for wrong passwords)
-       - All 4 auth integration tests now pass: test_login_successful, test_login_wrong_password, test_login_nonexistent_email, test_login_missing_fields_returns_error
-       - cargo check --workspace: PASS (8 acceptable warnings for unused code)
-       - cargo build -p backend: PASS
-       - cargo test -p backend: PASS (17 passed, 11 ignored - external services)
+        - All providers, models, use-cases, and endpoints were already implemented from bootstrap
+        - Fixed bcrypt password verification in use_cases/auth.rs to check boolean result (returns Ok(false) for wrong passwords)
+        - All 4 auth integration tests now pass: test_login_successful, test_login_wrong_password, test_login_nonexistent_email, test_login_missing_fields_returns_error
+        - cargo check --workspace: PASS (8 acceptable warnings for unused code)
+        - cargo build -p backend: PASS
+        - cargo test -p backend: PASS (17 passed, 11 ignored - external services)
+- Created task 01-test-login-backend.md: Integration tests to verify login backend with external service interactions (SQLite, JWT, bcrypt). Created because 01-task-login-backend.md was an implementation task. This test task will verify:
+  - JWT token format and claims validation
+  - Session persistence in SQLite database
+  - Token expiration settings (short-lived access, long-lived refresh)
+  - bcrypt password verification with external service
+  - Proper error handling for all failure scenarios
+  - Test isolation with unique emails and cleanup
+- Completed task 01-test-login-backend.md: Fixed and implemented comprehensive integration tests for login backend:
+   - Fixed 5 bugs in existing login_service_tests.rs file:
+     * Missing variable definitions (now, access_exp, refresh_exp) in test_tokens_can_be_decoded_with_expected_claims
+     * UUID parameter conversion issue in get_session_from_db - refactored to use rusqlite::params! macro
+     * JWT signing error test changed to meaningful test (empty string is valid JWT secret)
+     * Fixed rusqlite::Rows iteration (use .next() method, not iterator)
+     * Fixed _user_id to user_id in 3 test functions where variable is actually used
+   - All 10 login service tests now pass
+   - Tests verify: JWT format, claims, session persistence, timestamps, user isolation, bcrypt handling, database error handling
+   - Proper test isolation with unique_email() and temp_sqlite_path()
+   - cargo check --workspace: PASS (8 acceptable warnings for unused code)
+   - cargo test -p backend: PASS (27 passed, 11 ignored - external services)

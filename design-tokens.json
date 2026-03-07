@@ -1,0 +1,889 @@
+{
+  "core": {
+    "fontWeights": {
+      "medium": {
+        "$value": "500",
+        "$type": "fontWeights",
+        "$description": ""
+      },
+      "normal": {
+        "$value": "400",
+        "$type": "fontWeights",
+        "$description": ""
+      },
+      "semibold": {
+        "$value": "600",
+        "$type": "fontWeights",
+        "$description": ""
+      },
+      "bold": {
+        "$value": "700",
+        "$type": "fontWeights",
+        "$description": ""
+      }
+    },
+    "spacing": {
+      "lg": {
+        "$value": "24",
+        "$type": "spacing",
+        "$description": "24px - Between sections"
+      },
+      "md": {
+        "$value": "16",
+        "$type": "spacing",
+        "$description": "16px - Between form fields"
+      },
+      "xl": {
+        "$value": "32",
+        "$type": "spacing",
+        "$description": "32px - Page padding"
+      },
+      "xs": {
+        "$value": "4",
+        "$type": "spacing",
+        "$description": "4px - Error message gap"
+      },
+      "2xl": {
+        "$value": "48",
+        "$type": "spacing",
+        "$description": "48px - Large gaps"
+      },
+      "sm": {
+        "$value": "8",
+        "$type": "spacing",
+        "$description": "8px - Label to input"
+      },
+      "input-padding": {
+        "$value": "12",
+        "$type": "spacing",
+        "$description": "12px - Input field internal padding"
+      },
+      "surface-gap": {
+        "$value": "15",
+        "$type": "spacing",
+        "$description": "15px - Gap between items inside a surface (e.g. inputs in form card)"
+      },
+      "section-gap": {
+        "$value": "25",
+        "$type": "spacing",
+        "$description": "25px - Gap between page sections (e.g. logo, tagline, card)"
+      }
+    },
+    "letterSpacing": {
+      "normal": {
+        "$value": "0",
+        "$type": "letterSpacing",
+        "$description": ""
+      },
+      "tight": {
+        "$value": "-0.5",
+        "$type": "letterSpacing",
+        "$description": ""
+      }
+    },
+    "fontFamilies": {
+      "mono": {
+        "$value": "JetBrains Mono",
+        "$type": "fontFamilies",
+        "$description": "Code and editor font"
+      },
+      "sans": {
+        "$value": "Inter",
+        "$type": "fontFamilies",
+        "$description": "Primary UI font"
+      }
+    },
+    "fontSizes": {
+      "xl": {
+        "$value": "24",
+        "$type": "fontSizes",
+        "$description": ""
+      },
+      "sm": {
+        "$value": "14",
+        "$type": "fontSizes",
+        "$description": ""
+      },
+      "lg": {
+        "$value": "20",
+        "$type": "fontSizes",
+        "$description": ""
+      },
+      "md": {
+        "$value": "16",
+        "$type": "fontSizes",
+        "$description": ""
+      },
+      "2xl": {
+        "$value": "32",
+        "$type": "fontSizes",
+        "$description": ""
+      },
+      "xs": {
+        "$value": "12",
+        "$type": "fontSizes",
+        "$description": ""
+      }
+    },
+    "strokeWidth": {
+      "default": {
+        "$value": "1",
+        "$type": "dimension",
+        "$description": ""
+      },
+      "thick": {
+        "$value": "2",
+        "$type": "dimension",
+        "$description": "Error/focus borders"
+      }
+    },
+    "borderRadius": {
+      "md": {
+        "$value": "8",
+        "$type": "borderRadius",
+        "$description": "Cards, containers"
+      },
+      "lg": {
+        "$value": "12",
+        "$type": "borderRadius",
+        "$description": "Modals, panels"
+      },
+      "sm": {
+        "$value": "4",
+        "$type": "borderRadius",
+        "$description": "Inputs, buttons"
+      },
+      "full": {
+        "$value": "9999",
+        "$type": "borderRadius",
+        "$description": "Pills, avatars"
+      }
+    },
+    "logo": {
+      "root-stroke": {
+        "$value": "rgb(177, 177, 177)",
+        "$type": "color",
+        "$description": ""
+      },
+      "l-bg": {
+        "$value": "rgb(187, 237, 235)",
+        "$type": "color",
+        "$description": ""
+      },
+      "j": {
+        "$value": "rgb(210, 135, 21)",
+        "$type": "color",
+        "$description": ""
+      },
+      "k-bg": {
+        "$value": "rgb(233, 178, 255)",
+        "$type": "color",
+        "$description": ""
+      },
+      "bubble": {
+        "$value": "5",
+        "$type": "borderWidth",
+        "$description": ""
+      },
+      "k": {
+        "$value": "rgb(137, 21, 183)",
+        "$type": "color",
+        "$description": ""
+      },
+      "l": {
+        "$value": "rgb(55, 163, 157)",
+        "$type": "color",
+        "$description": ""
+      },
+      "root-bg": {
+        "$value": "rgb(255, 255, 255)",
+        "$type": "color",
+        "$description": ""
+      },
+      "h": {
+        "$value": "rgb(28, 119, 59)",
+        "$type": "color",
+        "$description": ""
+      },
+      "j-bg": {
+        "$value": "rgb(241, 209, 159)",
+        "$type": "color",
+        "$description": ""
+      },
+      "h-bg": {
+        "$value": "rgb(100, 255, 189)",
+        "$type": "color",
+        "$description": ""
+      },
+      "font-weight": {
+        "$value": "700",
+        "$type": "fontWeights",
+        "$description": "Logo text bold weight"
+      }
+    },
+    "sizing": {
+      "icon-sm": {
+        "$value": "16",
+        "$type": "sizing",
+        "$description": ""
+      },
+      "button-height": {
+        "$value": "44",
+        "$type": "sizing",
+        "$description": "Button height"
+      },
+      "strength-bar-height": {
+        "$value": "6",
+        "$type": "sizing",
+        "$description": "Password strength bar"
+      },
+      "icon-lg": {
+        "$value": "24",
+        "$type": "sizing",
+        "$description": ""
+      },
+      "input-height": {
+        "$value": "40",
+        "$type": "sizing",
+        "$description": "Input field height"
+      },
+      "icon-md": {
+        "$value": "20",
+        "$type": "sizing",
+        "$description": ""
+      },
+      "form-max-width": {
+        "$value": "400",
+        "$type": "sizing",
+        "$description": "Max width for auth forms"
+      }
+    },
+    "color": {
+      "palette": {
+        "amber-900": {
+          "$value": "#451a03",
+          "$type": "color",
+          "$description": ""
+        },
+        "white": {
+          "$value": "#ffffff",
+          "$type": "color",
+          "$description": ""
+        },
+        "gray-50": {
+          "$value": "#fafafa",
+          "$type": "color",
+          "$description": ""
+        },
+        "gray-900": {
+          "$value": "#111827",
+          "$type": "color",
+          "$description": ""
+        },
+        "gray-100": {
+          "$value": "#f5f5f5",
+          "$type": "color",
+          "$description": ""
+        },
+        "gray-700": {
+          "$value": "#333333",
+          "$type": "color",
+          "$description": ""
+        },
+        "red-50": {
+          "$value": "#fef2f2",
+          "$type": "color",
+          "$description": ""
+        },
+        "amber-50": {
+          "$value": "#fffbeb",
+          "$type": "color",
+          "$description": ""
+        },
+        "gray-800": {
+          "$value": "#1f2937",
+          "$type": "color",
+          "$description": ""
+        },
+        "green-50": {
+          "$value": "#f0fdf4",
+          "$type": "color",
+          "$description": ""
+        },
+        "green-500": {
+          "$value": "#16a34a",
+          "$type": "color",
+          "$description": ""
+        },
+        "green-900": {
+          "$value": "#052e16",
+          "$type": "color",
+          "$description": ""
+        },
+        "red-500": {
+          "$value": "#dc2626",
+          "$type": "color",
+          "$description": ""
+        },
+        "indigo-50": {
+          "$value": "#eef2ff",
+          "$type": "color",
+          "$description": ""
+        },
+        "red-900": {
+          "$value": "#450a0a",
+          "$type": "color",
+          "$description": ""
+        },
+        "black": {
+          "$value": "#000000",
+          "$type": "color",
+          "$description": ""
+        },
+        "green-400": {
+          "$value": "#4ade80",
+          "$type": "color",
+          "$description": ""
+        },
+        "gray-300": {
+          "$value": "#d1d5db",
+          "$type": "color",
+          "$description": ""
+        },
+        "gray-500": {
+          "$value": "#666666",
+          "$type": "color",
+          "$description": ""
+        },
+        "red-400": {
+          "$value": "#f87171",
+          "$type": "color",
+          "$description": ""
+        },
+        "amber-500": {
+          "$value": "#d97706",
+          "$type": "color",
+          "$description": ""
+        },
+        "gray-400": {
+          "$value": "#999999",
+          "$type": "color",
+          "$description": ""
+        },
+        "amber-400": {
+          "$value": "#fbbf24",
+          "$type": "color",
+          "$description": ""
+        }
+      },
+      "brand": {
+        "primary-hover": {
+          "$value": "#0056b3",
+          "$type": "color",
+          "$description": "Primary brand color on hover"
+        },
+        "primary": {
+          "$value": "#007bff",
+          "$type": "color",
+          "$description": "Primary brand color"
+        }
+      }
+    },
+    "opacity": {
+      "placeholder": {
+        "$value": "0.6",
+        "$type": "opacity",
+        "$description": ""
+      },
+      "disabled": {
+        "$value": "0.5",
+        "$type": "opacity",
+        "$description": ""
+      }
+    }
+  },
+  "light": {
+    "color": {
+      "semantic": {
+        "warning": {
+          "$value": "{color.palette.amber-500}",
+          "$type": "color",
+          "$description": "Warning color"
+        },
+        "success-bg": {
+          "$value": "{color.palette.green-50}",
+          "$type": "color",
+          "$description": "Success background tint"
+        },
+        "warning-bg": {
+          "$value": "{color.palette.amber-50}",
+          "$type": "color",
+          "$description": "Warning background tint"
+        },
+        "success": {
+          "$value": "{color.palette.green-500}",
+          "$type": "color",
+          "$description": "Success color"
+        },
+        "error": {
+          "$value": "{color.palette.red-500}",
+          "$type": "color",
+          "$description": "Error color"
+        },
+        "error-bg": {
+          "$value": "{color.palette.red-50}",
+          "$type": "color",
+          "$description": "Error background tint"
+        }
+      },
+      "text": {
+        "inverse": {
+          "$value": "{color.palette.white}",
+          "$type": "color",
+          "$description": "Text on dark backgrounds"
+        },
+        "secondary": {
+          "$value": "{color.palette.gray-500}",
+          "$type": "color",
+          "$description": "Body text"
+        },
+        "muted": {
+          "$value": "{color.palette.gray-400}",
+          "$type": "color",
+          "$description": "Placeholders, disabled"
+        },
+        "primary": {
+          "$value": "{color.palette.gray-700}",
+          "$type": "color",
+          "$description": "Headings"
+        }
+      },
+      "button": {
+        "disabled-bg": {
+          "$value": "{color.palette.gray-300}",
+          "$type": "color",
+          "$description": ""
+        },
+        "primary-text": {
+          "$value": "{color.palette.white}",
+          "$type": "color",
+          "$description": ""
+        },
+        "primary-bg": {
+          "$value": "{color.brand.primary}",
+          "$type": "color",
+          "$description": ""
+        },
+        "disabled-text": {
+          "$value": "{color.palette.gray-400}",
+          "$type": "color",
+          "$description": ""
+        },
+        "primary-hover": {
+          "$value": "{color.brand.primary-hover}",
+          "$type": "color",
+          "$description": ""
+        }
+      },
+      "file-browser": {
+        "row-odd": {
+          "$value": "{color.palette.white}",
+          "$type": "color",
+          "$description": ""
+        },
+        "project-inactive": {
+          "$value": "{color.palette.white}",
+          "$type": "color",
+          "$description": ""
+        },
+        "project-active": {
+          "$value": "{color.palette.indigo-50}",
+          "$type": "color",
+          "$description": ""
+        },
+        "row-even": {
+          "$value": "{color.palette.gray-50}",
+          "$type": "color",
+          "$description": ""
+        }
+      },
+      "strength": {
+        "medium": {
+          "$value": "{color.semantic.warning}",
+          "$type": "color",
+          "$description": "Password strength: medium"
+        },
+        "strong": {
+          "$value": "{color.semantic.success}",
+          "$type": "color",
+          "$description": "Password strength: strong"
+        },
+        "weak": {
+          "$value": "{color.semantic.error}",
+          "$type": "color",
+          "$description": "Password strength: weak"
+        }
+      },
+      "input": {
+        "bg": {
+          "$value": "{color.palette.white}",
+          "$type": "color",
+          "$description": ""
+        },
+        "border-error": {
+          "$value": "{color.semantic.error}",
+          "$type": "color",
+          "$description": ""
+        },
+        "border": {
+          "$value": "{color.palette.gray-300}",
+          "$type": "color",
+          "$description": ""
+        },
+        "border-focus": {
+          "$value": "{color.brand.primary}",
+          "$type": "color",
+          "$description": ""
+        },
+        "placeholder": {
+          "$value": "{color.palette.gray-400}",
+          "$type": "color",
+          "$description": ""
+        }
+      },
+      "bg": {
+        "surface": {
+          "$value": "{color.palette.white}",
+          "$type": "color",
+          "$description": "Cards, forms"
+        },
+        "page": {
+          "$value": "{color.palette.gray-100}",
+          "$type": "color",
+          "$description": "Page background"
+        },
+        "surface-alt": {
+          "$value": "{color.palette.gray-50}",
+          "$type": "color",
+          "$description": "Alternate rows, panels"
+        }
+      },
+      "link": {
+        "default": {
+          "$value": "{color.brand.primary}",
+          "$type": "color",
+          "$description": ""
+        },
+        "hover": {
+          "$value": "{color.brand.primary-hover}",
+          "$type": "color",
+          "$description": ""
+        }
+      }
+    },
+    "shadow": {
+      "card-hover": {
+        "$value": [
+          {
+            "offsetX": "0",
+            "offsetY": "4",
+            "blur": "6",
+            "spread": "-1",
+            "color": "#00000026",
+            "inset": false
+          }
+        ],
+        "$type": "shadow",
+        "$description": ""
+      },
+      "card": {
+        "$value": [
+          {
+            "offsetX": "4",
+            "offsetY": "4",
+            "blur": "3",
+            "spread": "0",
+            "color": "#0000001a",
+            "inset": false
+          }
+        ],
+        "$type": "shadow",
+        "$description": ""
+      },
+      "input-focus": {
+        "$value": [
+          {
+            "offsetX": "0",
+            "offsetY": "0",
+            "blur": "0",
+            "spread": "3",
+            "color": "#007bff40",
+            "inset": false
+          }
+        ],
+        "$type": "shadow",
+        "$description": ""
+      }
+    }
+  },
+  "dark": {
+    "color": {
+      "semantic": {
+        "warning": {
+          "$value": "{color.palette.amber-400}",
+          "$type": "color",
+          "$description": "Warning color — lighter amber for dark bg contrast"
+        },
+        "success-bg": {
+          "$value": "{color.palette.green-900}",
+          "$type": "color",
+          "$description": "Success background — dark green tint"
+        },
+        "warning-bg": {
+          "$value": "{color.palette.amber-900}",
+          "$type": "color",
+          "$description": "Warning background — dark amber tint"
+        },
+        "success": {
+          "$value": "{color.palette.green-400}",
+          "$type": "color",
+          "$description": "Success color — lighter green for dark bg contrast"
+        },
+        "error": {
+          "$value": "{color.palette.red-400}",
+          "$type": "color",
+          "$description": "Error color — lighter red for dark bg contrast"
+        },
+        "error-bg": {
+          "$value": "{color.palette.red-900}",
+          "$type": "color",
+          "$description": "Error background — dark red tint"
+        }
+      },
+      "text": {
+        "inverse": {
+          "$value": "{color.palette.gray-900}",
+          "$type": "color",
+          "$description": "Text on light backgrounds"
+        },
+        "secondary": {
+          "$value": "{color.palette.gray-300}",
+          "$type": "color",
+          "$description": "Body text"
+        },
+        "muted": {
+          "$value": "{color.palette.gray-500}",
+          "$type": "color",
+          "$description": "Placeholders, disabled"
+        },
+        "primary": {
+          "$value": "{color.palette.gray-100}",
+          "$type": "color",
+          "$description": "Headings"
+        }
+      },
+      "button": {
+        "disabled-bg": {
+          "$value": "{color.palette.gray-700}",
+          "$type": "color",
+          "$description": ""
+        },
+        "primary-text": {
+          "$value": "{color.palette.white}",
+          "$type": "color",
+          "$description": ""
+        },
+        "primary-bg": {
+          "$value": "{color.brand.primary}",
+          "$type": "color",
+          "$description": ""
+        },
+        "disabled-text": {
+          "$value": "{color.palette.gray-500}",
+          "$type": "color",
+          "$description": ""
+        },
+        "primary-hover": {
+          "$value": "{color.brand.primary-hover}",
+          "$type": "color",
+          "$description": ""
+        }
+      },
+      "file-browser": {
+        "row-odd": {
+          "$value": "{color.palette.gray-800}",
+          "$type": "color",
+          "$description": ""
+        },
+        "project-inactive": {
+          "$value": "{color.palette.gray-800}",
+          "$type": "color",
+          "$description": ""
+        },
+        "project-active": {
+          "$value": "#1e1b4b",
+          "$type": "color",
+          "$description": "Dark indigo for active project"
+        },
+        "row-even": {
+          "$value": "{color.palette.gray-700}",
+          "$type": "color",
+          "$description": ""
+        }
+      },
+      "strength": {
+        "medium": {
+          "$value": "{color.semantic.warning}",
+          "$type": "color",
+          "$description": "Password strength: medium"
+        },
+        "strong": {
+          "$value": "{color.semantic.success}",
+          "$type": "color",
+          "$description": "Password strength: strong"
+        },
+        "weak": {
+          "$value": "{color.semantic.error}",
+          "$type": "color",
+          "$description": "Password strength: weak"
+        }
+      },
+      "input": {
+        "bg": {
+          "$value": "{color.palette.gray-800}",
+          "$type": "color",
+          "$description": ""
+        },
+        "border-error": {
+          "$value": "{color.semantic.error}",
+          "$type": "color",
+          "$description": ""
+        },
+        "border": {
+          "$value": "{color.palette.gray-500}",
+          "$type": "color",
+          "$description": ""
+        },
+        "border-focus": {
+          "$value": "{color.brand.primary}",
+          "$type": "color",
+          "$description": ""
+        },
+        "placeholder": {
+          "$value": "{color.palette.gray-500}",
+          "$type": "color",
+          "$description": ""
+        }
+      },
+      "bg": {
+        "surface": {
+          "$value": "{color.palette.gray-800}",
+          "$type": "color",
+          "$description": "Cards, forms"
+        },
+        "page": {
+          "$value": "{color.palette.gray-900}",
+          "$type": "color",
+          "$description": "Page background"
+        },
+        "surface-alt": {
+          "$value": "{color.palette.gray-700}",
+          "$type": "color",
+          "$description": "Alternate rows, panels"
+        }
+      },
+      "link": {
+        "default": {
+          "$value": "#5ba8ff",
+          "$type": "color",
+          "$description": "Lighter blue for dark bg readability"
+        },
+        "hover": {
+          "$value": "#8dc4ff",
+          "$type": "color",
+          "$description": ""
+        }
+      }
+    },
+    "shadow": {
+      "card-hover": {
+        "$value": [
+          {
+            "offsetX": "0",
+            "offsetY": "4",
+            "blur": "6",
+            "spread": "-1",
+            "color": "#00000080",
+            "inset": false
+          }
+        ],
+        "$type": "shadow",
+        "$description": ""
+      },
+      "card": {
+        "$value": [
+          {
+            "offsetX": "4",
+            "offsetY": "4",
+            "blur": "3",
+            "spread": "0",
+            "color": "#00000066",
+            "inset": false
+          }
+        ],
+        "$type": "shadow",
+        "$description": ""
+      },
+      "input-focus": {
+        "$value": [
+          {
+            "offsetX": "0",
+            "offsetY": "0",
+            "blur": "0",
+            "spread": "3",
+            "color": "#007bff66",
+            "inset": false
+          }
+        ],
+        "$type": "shadow",
+        "$description": ""
+      }
+    }
+  },
+  "$themes": [
+    {
+      "id": "b950d130-c95a-8005-8007-ad45330142d3",
+      "name": "light",
+      "group": "mode",
+      "description": "",
+      "isSource": false,
+      "selectedTokenSets": {
+        "light": "enabled",
+        "core": "enabled"
+      }
+    },
+    {
+      "id": "b950d130-c95a-8005-8007-ad45330308c4",
+      "name": "dark",
+      "group": "mode",
+      "description": "",
+      "isSource": false,
+      "selectedTokenSets": {
+        "dark": "enabled",
+        "core": "enabled"
+      }
+    }
+  ],
+  "$metadata": {
+    "tokenSetOrder": [
+      "core",
+      "light",
+      "dark"
+    ],
+    "activeThemes": [],
+    "activeSets": [
+      "light",
+      "core"
+    ]
+  }
+}

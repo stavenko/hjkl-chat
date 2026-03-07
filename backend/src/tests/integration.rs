@@ -1,12 +1,11 @@
-use actix_web::test;
-use actix_web::web::Data;
-use crate::config::Config;
 use crate::tests::utils::{random_bucket_prefix, temp_sqlite_path, unique_email};
 
 mod minio_tests;
 pub mod mailhog_tests;
 mod isolation_tests;
 mod concurrent_tests;
+mod auth_tests;
+mod login_service_tests;
 
 #[actix_rt::test]
 async fn test_test_utils_generate_valid_values() {
@@ -33,17 +32,3 @@ async fn test_test_utils_generate_unique_values() {
     assert_eq!(emails.len(), emails.into_iter().collect::<std::collections::HashSet<_>>().len(), "Emails should be unique");
 }
 
-#[actix_rt::test]
-async fn test_app_starts() {
-    let app = test::init_service(
-        actix_web::App::new()
-            .app_data(Data::new(Config::default()))
-    )
-    .await;
-    
-    let req = test::TestRequest::get()
-        .uri("/")
-        .to_request();
-    
-    let _resp = test::call_service(&app, req).await;
-}

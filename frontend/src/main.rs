@@ -1,13 +1,13 @@
 use leptos::*;
 
-#[component]
-fn App() -> impl IntoView {
-    view! {
-        <div>"Hello from Leptos!"</div>
-    }
-}
-
+mod app;
+mod auth_state;
+mod auth_service;
+mod components;
+mod pages;
 mod services;
+
+use app::App;
 
 #[allow(clippy::main_recursion)]
 #[wasm_bindgen::prelude::wasm_bindgen]

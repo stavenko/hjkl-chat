@@ -9,8 +9,8 @@
     <div id="app"></div>
     <script>
       window.addEventListener('TrunkApplicationStarted', () => {
-        if (typeof window.wasmBindings?.run === 'function') {
-          window.wasmBindings.run();
+        if (typeof window.wasmBindings?.main === 'function') {
+          window.wasmBindings.main();
         }
       });
     </script>

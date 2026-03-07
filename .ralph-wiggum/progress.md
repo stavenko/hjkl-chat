@@ -166,14 +166,15 @@ Created because all bootstrap fix tasks are complete and user story 00-bootstrap
       - grep verification: No hardcoded email addresses in production code
       - Report written to /project/.ralph-wiggum/reports/01-task-fix-01-add-from-email-to-smtp-config.md
 - Completed task 01-task-fix-02-fix-clippy-warnings.md: Fixed all clippy warnings (excluding dead_code):
-      - Fixed needless_borrow in backend/src/api/endpoints/auth.rs:33 (removed unnecessary & borrow)
-      - Fixed let_unit_value in backend/src/providers/sqlite.rs:49 (removed unnecessary let binding)
-      - Fixed needless_borrow in backend/src/providers/sqlite.rs:100,117 (2 occurrences, removed unnecessary & row borrows)
-      - Fixed unused_variable in backend/src/providers/smtp.rs:26 (prefixed use_tls with underscore)
-      - Fixed if_same_then_else in backend/src/providers/smtp.rs:33-43 (removed redundant if/else with identical branches)
-      - Fixed redundant_closure in backend/src/providers/smtp.rs:67 (replaced closure with function pointer)
-      - Fixed redundant_closure in backend/src/use_cases/auth.rs:28 (replaced closure with function pointer)
-      - cargo clippy -p backend -- -D warnings: PASS (only dead_code warnings remain, handled separately)
-      - cargo check -p backend: PASS
-      - cargo test -p backend: PASS (27 passed, 0 failed, 11 ignored)
-      - Report written to /project/.ralph-wiggum/reports/01-task-fix-02-fix-clippy-warnings.md
+       - Fixed needless_borrow in backend/src/api/endpoints/auth.rs:33 (removed unnecessary & borrow)
+       - Fixed let_unit_value in backend/src/providers/sqlite.rs:49 (removed unnecessary let binding)
+       - Fixed needless_borrow in backend/src/providers/sqlite.rs:100,117 (2 occurrences, removed unnecessary & row borrows)
+       - Fixed unused_variable in backend/src/providers/smtp.rs:26 (prefixed use_tls with underscore)
+       - Fixed if_same_then_else in backend/src/providers/smtp.rs:33-43 (removed redundant if/else with identical branches)
+       - Fixed redundant_closure in backend/src/providers/smtp.rs:67 (replaced closure with function pointer)
+       - Fixed redundant_closure in backend/src/use_cases/auth.rs:28 (replaced closure with function pointer)
+       - cargo clippy -p backend -- -D warnings: PASS (only dead_code warnings remain, handled separately)
+       - cargo check -p backend: PASS
+       - cargo test -p backend: PASS (27 passed, 0 failed, 11 ignored)
+       - Report written to /project/.ralph-wiggum/reports/01-task-fix-02-fix-clippy-warnings.md
+- Created task 02-task-login-frontend.md: Frontend login implementation for user story 01-login.md. Created because all backend login functionality is complete (verified by integration tests and manual testing), but the frontend login page, form, auth_service, routing, and authentication state are not implemented. This task will implement LoginPage at /login route, LoginForm with email/password fields, AuthenticationInput and AuthenticationButton reusable components, auth_service module with login() function, AuthState for token storage, and routing with protected route at / that redirects to /login.

@@ -147,7 +147,7 @@ RegistrationForm → Email Verification → CompleteRegistrationForm
 - [ ] Integration tests cover: successful registration flow end-to-end, invalid email format rejected, wrong verification code rejected, expired session rejected, password mismatch rejected
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `RegistrationPage` exists at route `/register` with three-step flow (init → verify → complete)

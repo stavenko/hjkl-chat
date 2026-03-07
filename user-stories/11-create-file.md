@@ -76,7 +76,7 @@ s3://bucket/{user_id}/project/notes.md
 - [ ] Integration tests cover: create file, file stored in S3, metadata in SQLite, path suggestions return correct results, duplicate path handling, unauthorized access rejected
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, MinIO, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `CreateFilePage` (or file editor view) accessible from files browser via `AddFileButton`

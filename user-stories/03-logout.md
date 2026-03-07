@@ -41,7 +41,7 @@ LogoutForm
 - [ ] Integration tests cover: successful logout, logout with invalid token, logout with already-invalidated session
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] Logout action callable from authenticated UI (button or menu item)

@@ -63,7 +63,7 @@ ChatHistoryView → SelectChat → ContinueChat
 - [ ] Integration tests cover: list chats (empty and populated), get single chat with messages, unauthorized access rejected, non-existent chat returns error, cross-user access rejected
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `ChatHistoryPage` — displays list of user's chats with title, preview, and timestamp

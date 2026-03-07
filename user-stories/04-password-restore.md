@@ -134,7 +134,7 @@ PasswordRestoreRequestForm → PasswordRestoreVerifyForm → PasswordRestoreComp
 - [ ] Integration tests cover: full restore flow end-to-end, wrong code rejected, expired session rejected, password mismatch rejected, non-existent email handled gracefully
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `PasswordRestorePage` exists at route `/password/restore` with three-step flow (init → verify → complete)

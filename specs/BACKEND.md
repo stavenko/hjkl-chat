@@ -187,6 +187,121 @@ password = ""
 ```
 ## Error handling
 
+Each endpoint must be very simple:
+
+```
+pub async fn endpoint(provider: web::Data<Arc<Provider>>) -> impl Responder {
+    let result: ApiResponse<_> = use_case::command((*provider.into_inner()).clone())
+        .await
+        .into();
+    result
+}
+```
+
+ApiResponse:
+
+```
+pub enum ApiResponse<T> {
+    Ok(T),
+    Err(Error),
+}
+
+impl<T> Responder for ApiResponse<T>
+where
+    T: Serialize + fmt::Debug,
+{
+    type Body = EitherBody<String>;
+
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        let response = match self {
+            Self::Ok(r) => serde_json::to_value(&r).map_or_else(
+                |_| {
+                    tracing::error!("Cannot serialize response: {:?}", r);
+                    HttpResponse::InternalServerError()
+                        .message_body("Failed to serialize response".to_owned())
+                },
+                |v| {
+                    let response = json!({
+                      "status": "ok",
+                      "payload": v
+                    });
+
+                    HttpResponse::Ok()
+                        .content_type(mime::APPLICATION_JSON)
+                        .message_body(serde_json::to_string(&response).unwrap())
+                },
+            ),
+            Self::Err(e) => {
+                let response = json!({
+                  "status": "error",
+                  "error": e
+                });
+
+                serde_json::to_string(&response)
+                    .map_err(|err| err.into())
+                    .and_then(|body| {
+                        HttpResponse::build(StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS)
+                            .content_type(mime::APPLICATION_JSON)
+                            .message_body(body)
+                    })
+            }
+        };
+        match response {
+            Ok(res) => res.map_into_left_body(),
+            Err(err) => HttpResponse::from_error(err).map_into_right_body(),
+        }
+    }
+}
+
+impl<T, E> From<Result<T, E>> for ApiResponse<T>
+where
+    E: Into<Error>,
+{
+    fn from(value: Result<T, E>) -> Self {
+        match value {
+            Ok(e) => ApiResponse::Ok(e),
+            Err(e) => ApiResponse::Err(e.into()),
+        }
+    }
+}
+```
+
+And ApiError
+
+```rust
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Error {
+    pub code: String,
+    pub message: String,
+}
+```
+
+This approch allows in use cases to create their own error types:
+
+```
+#[derive(thiserror::Error, Debug)]
+#[allow(unused)]
+pub enum UseCaseError {
+    #[error("Internal server error")]
+    InternalServerError,
+}
+
+impl From<AddTaskError> for Error {
+    fn from(value: AddTaskError) -> Self {
+        match value {
+            AddTaskError::InternalServerError => Error {
+                code: "InternalServerError".to_string(),
+                message: value.to_string(),
+            },
+        }
+    }
+}
+```
+
+Remember to keep endpoint small. But usecase must contains all the
+busyness-logic.
+
 ## Search
 
 Backend computes TF-IDF keywords on file save and stores them in S3 alongside each file. Backend does **not** maintain a search index — the search index lives on the frontend (localStorage/IndexedDB). The frontend rebuilds its index by fetching the TOC and keyword files from the backend when needed (see `SEARCH-ENGINE.md` and `FILE-STORAGE.md`).

@@ -132,7 +132,7 @@ Shown immediately as the user types, before any API call.
 - [ ] Integration tests cover: each error type triggers correct response format, rate limiting returns `retry_after`, field-level validation errors include field names
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `TextInput` component with `Input / Error` variant renders red border and error message below the field when error signal is set

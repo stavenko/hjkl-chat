@@ -202,7 +202,7 @@ The following components/tokens must be implemented:
 - [ ] Integration tests cover: list projects (empty and populated), list files by project, create project, unauthorized access rejected, non-existent project returns error
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `FilesBrowserPage` exists at route `/files`, requires authenticated user (redirects to `/login` if not authenticated)

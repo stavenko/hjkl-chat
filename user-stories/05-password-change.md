@@ -89,7 +89,7 @@ PasswordChangeForm
 - [ ] Integration tests cover: successful password change, wrong current password, new password mismatch, unauthenticated request rejected
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `PasswordChangePage` exists at route `/password/change`, requires authenticated user (redirects to `/login` if not authenticated)

@@ -65,7 +65,7 @@ ChatMessage → Assistant generates file → Assistant calls SaveFile tool → F
 - [ ] Integration tests cover: save file via tool, file appears in S3, metadata stored in SQLite, file linked to chat, duplicate path handling
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, MinIO, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] Chat messages containing `file://uuid` links render as clickable links

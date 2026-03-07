@@ -74,7 +74,7 @@ FileEditor → CreateFile → SaveMarkdown
 - [ ] Integration tests cover: create markdown file, update existing file, content persisted in S3, unauthorized access rejected, update non-existent file returns error, cross-user update rejected
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, MinIO, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `FileEditorPage` — markdown editor view opened when clicking a file in the files browser or creating a new file

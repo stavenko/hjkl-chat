@@ -49,7 +49,7 @@ ChatInterface → NewChat → AssistantResponse
 - [ ] Integration tests cover: create chat with valid message, unauthorized request rejected, empty message rejected
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `ChatPage` exists at a route for new/existing chats, requires authenticated user

@@ -69,11 +69,14 @@ Extract `frame-id` from the URL to look up the thumbnail.
 
 ### Serving config.json per environment
 
-**Docker Compose (dev/staging):** The reverse proxy (e.g., nginx) serves both the static frontend files from `dist/` and a `config.json` mounted or generated per environment. Example: `config.json` is a volume mount pointing to the backend's internal address.
+**Docker Compose (dev in `docker/local/`):** The `docker-compose.yml` uses `config.toml` and `config.json` from the same directory. The reverse proxy serves both the static frontend files from `dist/` and `config.json` with the backend's internal address.
+
+**Docker Compose (test in `docker/test/`):** The `docker-compose.yml` uses `config.toml` and `config.json` from the same directory. Test infrastructure (MinIO, MailHog) is configured via these files.
 
 **CDN (production):** The build output (`dist/`) is deployed to CDN without `config.json`. The CDN or edge server serves `config.json` separately, configured with the production API URL.
 
-**Local dev with `trunk serve`:** Trunk proxies `/api/` requests to the local backend. A `tests/config.json` file exists for local testing and must match the port in `tests/config.toml`.
+**Local dev with `trunk serve`:** Trunk proxies `/api/` requests to the local backend and serves `config.json` from `docker/test/config.json` via proxy configuration in `trunk.toml`. 
+
 
 
 ## Auth Token Storage

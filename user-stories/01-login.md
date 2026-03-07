@@ -92,7 +92,7 @@ See @specs/DESIGN.md for design system details, token structure, and API access.
 - [ ] Integration tests cover: successful login, wrong password, non-existent email, missing fields
 - [ ] `cargo test` — all tests pass, zero failures
 - [ ] Backend starts with config file, serves HTTP on configured port
-- [ ] `docker-compose.yml` includes backend, frontend, and required dependencies
+- [ ] `docker/local/docker-compose.yml` includes backend, frontend, MinIO, and MailHog services
 
 ### Frontend
 - [ ] `LoginPage` exists at route `/login`
@@ -101,7 +101,8 @@ See @specs/DESIGN.md for design system details, token structure, and API access.
 - [ ] "Forgot password?" link navigates to `/password/restore`
 - [ ] "Don't have an account? Register" link navigates to `/register`
 - [ ] `auth_service` module implements `login` async function
+- [ ] There is a method in authenticaion service, which check for authentication.
 - [ ] On successful login, tokens are stored in `AuthState` and `localStorage`, user is navigated to home
 - [ ] Frontend unit tests pass — form validation, error display on failed login, service function mocking
-- [ ] "/" root requires authentication and it automatically redirectls to
-/login/
+- [ ] "/" path requires authentication and it automatically redirectls to "/login"
+

@@ -13,7 +13,13 @@ Each backend must have comprehensive tests. This is **critical** for reliability
 - **MinIO** – S3-compatible object storage used for all persistent data.
 
 ## 3. Test Environment Setup
-Create a `docker-compose.yml` that brings up the following containers:
+
+Test environment is located in `docker/test/` directory and contains:
+- `docker-compose.yml` – brings up MinIO and MailHog containers
+- `config.toml` – backend test configuration
+- `config.json` – frontend test configuration
+
+The `docker-compose.yml` brings up the following containers:
 - `minio` – an S3-compatible object store.
 - `mailhog` – a MailHog instance for email capture.
 
@@ -127,17 +133,16 @@ Test must be running by `cargo test` or `cargo test -p backend`.
 
 For tests must be utilized actix test service.
 IMPORTANT:
- - Manual implementations of testing server is prohibited.
- - Mocks PROHIBITED.
+  - Manual implementations of testing server is prohibited.
+  - Mocks PROHIBITED.
 
 It is very IMPORTANT to reduce amount of written code. Use actix testings
 
+Configuration files are located in `docker/test/`:
+- `docker/test/config.toml` – backend test configuration pointing to MinIO at `http://localhost:9000` and MailHog at `localhost:1025`
+- `docker/test/config.json` – frontend test configuration with API base URL
 
-
-- Provide a **test‑specific config file** (e.g., `tests/config.toml`) that points the providers to the Docker‑Compose host/ports and injects the random identifiers described above.
-- S3 config should point to `http://localhost:9000` with MinIO credentials.
-- SQLite config should specify a temporary file path pattern.
-- The test harness should read this config and initialise the providers accordingly.
+The test harness should read these configs and initialise the providers accordingly.
 
 
 

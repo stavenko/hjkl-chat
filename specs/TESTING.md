@@ -96,8 +96,48 @@ async fn test_me_endpoint_success() {
 
 This compact form follows the **init → fixtures → scenario → assertions** flow and can be reused for other endpoints.
 
+
+## 6. Tests location.
+
+Backend must own all tests.
+It could be this:
+```
+backend/
+  src
+  tests
+```
+
+Or this:
+```
+backend/
+  src/
+    cli.rs
+    tests.rs
+    main.rs
+      mod cli;
+      #[cfg(test)]
+      mod tests
+    
+```
+Test must be running by `cargo test` or `cargo test -p backend`.
+
+
+
 ## 7. Test Configuration
+
+For tests must be utilized actix test service.
+IMPORTANT:
+ - Manual implementations of testing server is prohibited.
+ - Mocks PROHIBITED.
+
+It is very IMPORTANT to reduce amount of written code. Use actix testings
+
+
+
 - Provide a **test‑specific config file** (e.g., `tests/config.toml`) that points the providers to the Docker‑Compose host/ports and injects the random identifiers described above.
 - S3 config should point to `http://localhost:9000` with MinIO credentials.
 - SQLite config should specify a temporary file path pattern.
 - The test harness should read this config and initialise the providers accordingly.
+
+
+

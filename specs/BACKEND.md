@@ -40,6 +40,10 @@ Can keep many files within itself, So it
 - `read(object_id: &str) -> Result<Vec<u8>>`
   - Reads and returns the contents of a stored object as `Vec<u8>`.
 
+- `get_path(filename: &str) -> Result<PathBuf>`
+  - Creates directory, where filename must be kept.
+  - directory is a directory of filepath `root.join(filename)`
+
 ### SQLiteProvider
 
 Query engine over a SQLite database stored in S3 and cached locally.
@@ -51,6 +55,10 @@ Query engine over a SQLite database stored in S3 and cached locally.
   - Saves it locally using LocalFileSystemProvider.
   - Retrieves the local file path.
   - Opens a `rusqlite` connection to the database file.
+
+In s3_object_path do not exists, then SQLiteProvider creates new database using
+LocalFileSystemProvider 'get_file_path(filename)' method. And then uses normal
+flow, using `dump_to_s3()' method.
 
 **Methods:**
 
@@ -107,6 +115,77 @@ SQLite is the only query engine; its database file is periodically flushed back 
 - All user files (chats, documents, anything created by a user), compressed as `.tgz`.
 - TF-IDF keyword files (`.kw.tgz`) alongside each user file.
 - TOC (table of contents) structures per user.
+
+## Config
+
+Config file is a toml file with sections. 
+
+### Main section.
+
+Contains port and addr and does not have its own name:
+
+```toml
+addr = "0.0.0.0"
+port = 5000
+```
+
+### SQLite provider
+
+```toml
+addr = "0.0.0.0"
+port = 5000
+
+[sqlite]
+s3_object_path
+
+```
+### S3 provider
+
+Contains all needed data to init bucket
+
+```toml
+addr = "0.0.0.0"
+port = 5000
+
+[s3]
+bucket = ""
+region = ""
+client_id = ""
+client_secret = ""
+host = ""
+
+```
+
+### Local FS provider
+
+Contains root path in filesystem
+
+```toml
+addr = "0.0.0.0"
+port = 5000
+
+[local_fs]
+root_path = ""
+
+```
+
+### SMTP provider
+
+Contains settings for SMTP to send
+
+```toml
+addr = "0.0.0.0"
+port = 5000
+
+[smtp]
+host = ""
+port = ""
+use_tls = ""
+username = ""
+password = ""
+
+```
+## Error handling
 
 ## Search
 

@@ -7,7 +7,12 @@ Each page in Penpot represents a complete workflow (user flow). All frames (boar
 
 ### Pages
 
-- **Main** - Page, contains all frames for this application.
+| Page | Purpose |
+| ---- | ------- |
+| Main(outdated) | Legacy frames, do not use for new designs |
+| Chat Interface | Chat UI screens |
+| Login | Authentication screens (login, error states) |
+| Logo | Logo master design |
 
 ## Frame Layout
 
@@ -20,32 +25,31 @@ Each page in Penpot represents a complete workflow (user flow). All frames (boar
 ### Current Layout
 
 ```
-Main Page:
-  Y=0:   [1 - Enter Email]    [2 - Verify Email]    [3 - Set Password]
-  Y=1052: [Login]
+Login Page:
+  Y=0:   [Login - Empty]    [Login - Filled]    [Login - Error]
 ```
-
-All frames in the same row represent steps in the registration flow.
 
 ## Frame Naming
 
-Each frame has a descriptive name:
-- `1 - Enter Email` - Step 1 of registration
-- `2 - Verify Email` - Step 2 of registration  
-- `3 - Set Password` - Step 3 of registration
+Frames are named with the flow prefix and state suffix:
+- `Login - Empty` — initial state, fields empty
+- `Login - Filled` — all fields filled, ready to submit
+- `Login - Error` — server returned error, error displayed inline
 
 ## Flows
 
-### Authentication Flow (Main Page)
-1. Registration: `1 - Enter Email` → `2 - Verify Email` → `3 - Set Password` (Y=0)
-2. Login: `Login` (Y=1052)
-3. Logout: `Logout` (to be created)
-4. Password Change: `Password Change` (to be created)
+### Login Flow (Login Page)
+1. `Login - Empty` → `Login - Filled` → `Login - Error` (on failure) or redirect (on success)
 
-### Password Restore Flow (Password Restore Page)
+### Password Restore Flow (to be created)
 1. Request password reset
 2. Verify code
 3. Set new password
+
+### Registration Flow (to be created)
+1. Enter email
+2. Verify email
+3. Set password
 
 ## Dimensions
 

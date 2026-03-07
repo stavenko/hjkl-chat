@@ -23,6 +23,9 @@ Create the root `Cargo.toml` workspace with three member crates:
 - `backend/` — binary crate, actix-web server
 - `frontend/` — binary crate, Leptos CSR app
 - `common/keyword-extractor/` — library crate
+- `docker/test` - directory for test docker-compose, which runs only minio and mail-hog
+- `docker/local` - directory for dev docker-compose, which runs backend,
+    frontend, minio and mail-hog. Used for local manual testing.
 
 Each crate must have its own `Cargo.toml` with minimal dependencies to compile. The workspace must `cargo check` successfully.
 
@@ -63,7 +66,8 @@ Add a `.gitignore` at the project root covering Rust/Cargo build artifacts (`tar
 - [ ] `cargo check --workspace` succeeds
 - [ ] `cargo build -p backend` succeeds
 - [ ] `cargo build -p frontend` succeeds (or `cargo build -p keyword-extractor` if frontend needs wasm target)
-- [ ] `docker-compose up -d` starts MinIO and MailHog
+- [ ] `docker-compose up -d` starts MinIO and MailHog in `test` dir
+- [ ] `docker-compose up -d` starts backend, frontend, MinIO and MailHog in `local` dir
 - [ ] `cargo test` runs at least one integration test against docker-compose services
 - [ ] Project structure matches PROJECT-STRUCTURE.md
 - [ ] Module conventions follow RUST-COMMON-SPEC.md (no inline modules, no mod.rs, no stubs)

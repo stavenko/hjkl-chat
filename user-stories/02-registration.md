@@ -158,3 +158,6 @@ RegistrationForm → Email Verification → CompleteRegistrationForm
 - [ ] On successful completion, tokens are stored in `AuthState` and `localStorage`, user is navigated away from registration
 - [ ] Client-side validation: invalid email shows inline error via `Input / Error`, password mismatch shows inline error
 - [ ] Frontend unit tests pass — component rendering, validation logic, service function mocking
+- [ ] Component design matches penpot. Appropriate components used, colors
+match, layout matches.
+

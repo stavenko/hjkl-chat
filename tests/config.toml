@@ -1,0 +1,23 @@
+addr = "0.0.0.0"
+port = 3001
+jwt_secret = "test-jwt-secret-key-for-testing-only"
+
+[s3]
+bucket = "test-bucket"
+region = "us-east-1"
+client_id = "minioadmin"
+client_secret = "minioadmin"
+host = "http://127.0.0.1:9000"
+
+[local_fs]
+root_path = "/tmp/local-fs"
+
+[sqlite]
+s3_object_path = "sqlite/test.db"
+
+[smtp]
+host = "172.18.0.3"
+port = 1025
+use_tls = false
+username = "admin"
+password = "admin"

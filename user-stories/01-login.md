@@ -23,14 +23,16 @@ LoginForm
 
 ## Design
 
-[View all frames in Penpot](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a59cf42ea713)
+See @specs/DESIGN.md for design system details, token structure, and API access.
+
+**Page:** Login (`b950d130-c95a-8005-8007-ad3c0ebbb6de`)
+
+[View all frames in Penpot](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=b950d130-c95a-8005-8007-ad3c0ebbb6de&frame-id=82852407-cb8b-809b-8007-ad6962f86950)
 
 **Components used:**
-- [Input / Text](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a5938ac9c2bc) — empty input with placeholder
-- [Input / Filled](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a5939900ce33) — input with entered value
-- [Input / Error](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a593a1713d45) — input with validation error
-- [Button / Primary](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a58f0ea4eb3e) — active submit button
-- [Button / Disabled](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a592241c003a) — inactive button
+- AuthenticationInput — text input with label, input container, and error text
+- AuthenticationButton — submit button for auth forms
+- hjkl-chat — logo component
 
 ---
 
@@ -39,9 +41,9 @@ LoginForm
 **Endpoint:** `POST /api/auth/login`
 
 **Frames:**
-- [4a - Empty](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a59cf42ea713) — both fields empty, button disabled
-- [4b - Invalid](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a59cf461d765) — server returns error, password field shows inline error "Invalid email or password", button disabled
-- [4c - Valid](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=988fdbaf-c8f8-808f-8007-a55ba615f576&frame-id=988fdbaf-c8f8-808f-8007-a59cf495e000) — both fields filled, button active
+- [Login - Empty](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=b950d130-c95a-8005-8007-ad3c0ebbb6de&frame-id=82852407-cb8b-809b-8007-ad6962f86950) — both fields empty, button disabled
+- [Login - Error](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=b950d130-c95a-8005-8007-ad3c0ebbb6de&frame-id=82852407-cb8b-809b-8007-ad6ed7fd51a7) — server returns error, password field shows red border + inline error "Invalid email or password", button disabled
+- [Login - Filled](https://penpot.hjkl.pro/view/742d722a-06ca-817e-8007-a42f6283e7ed?page-id=b950d130-c95a-8005-8007-ad3c0ebbb6de&frame-id=82852407-cb8b-809b-8007-ad6c1156d750) — both fields filled, button active
 
 **Validation:**
 - Button remains disabled (`Button / Disabled`) until both email and password are filled
@@ -101,3 +103,5 @@ LoginForm
 - [ ] `auth_service` module implements `login` async function
 - [ ] On successful login, tokens are stored in `AuthState` and `localStorage`, user is navigated to home
 - [ ] Frontend unit tests pass — form validation, error display on failed login, service function mocking
+- [ ] "/" root requires authentication and it automatically redirectls to
+/login/

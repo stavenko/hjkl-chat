@@ -1,1 +1,46 @@
+# Build artifacts
+target/
+**/*.rs.bk
+**/*.rs~
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cargo
+**/Cargo.lock
+
+# Test artifacts
+*.db
+*.sqlite
+*.sqlite3
+tests/*.db
+tests/*.sqlite
+tests/*.sqlite3
+tmp-*.db
+tmp-*.sqlite
+tmp-*.sqlite3
+temp-*.db
+temp-*.sqlite
+temp-*.sqlite3
+
+# Environment
 .env
+.env.local
+
+# Frontend
+dist/
+.frontmatter/
+
+# Logs
+*.log

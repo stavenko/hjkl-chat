@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__penpot__execute_code",
+      "Bash(ssh:*)",
+      "WebSearch",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__chrome-devtools__list_console_messages",
+      "mcp__chrome-devtools__list_pages",
+      "Bash(lsof:*)",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__list_network_requests",
+      "mcp__chrome-devtools__evaluate_script",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__fill",
+      "Bash(cargo build:*)",
+      "Bash(pkill:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:help.penpot.app)",
+      "WebFetch(domain:www.alwaystwisted.com)",
+      "WebFetch(domain:penpot.app)",
+      "Bash(python3:*)",
+      "WebFetch(domain:community.penpot.app)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:vectorwitch.com)",
+      "mcp__penpot__export_shape"
+    ]
+  }
+}

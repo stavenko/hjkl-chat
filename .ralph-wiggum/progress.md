@@ -2,9 +2,16 @@
 
 ## Status
 **Last Updated:** 2026-03-07
-**Tasks Completed:** 8
-**Current Task:** None (1 fix task pending)
-**Pending Tasks:** 1 fix task from review (00-task-fix-05 completed, no pending fix tasks)
+**Tasks Completed:** 9
+**Current Task:** None (all tasks complete)
+**Pending Tasks:** 0
+
+---
+
+## New Tasks Created
+
+### 01-task-login-backend.md
+Created because all bootstrap fix tasks are complete and user story 00-bootstrap-and-testing.md is fully implemented. The first incomplete user story is 01-login.md which has no implementation yet. This task implements the backend login endpoint with all required providers (SQLite, S3, LocalFileSystem, SMTP), models (User, Session), use-cases (auth::login), endpoints (POST /api/auth/login), database migrations, and integration tests.
 
 ---
 
@@ -97,10 +104,17 @@
       - Examples use Leptos 0.6 syntax
       - Aligns with FRONTEND.md requirements
 - Completed task 00-task-fix-05-add-api-base-url-initialization.md: Added API base URL initialization to frontend as required by specs/FRONTEND.md:
-      - Created frontend/src/services.rs with init_api_base_url() and get_api_base_url()
-      - Updated frontend/src/main.rs to call services::init_api_base_url().await before mount_to_body(App)
-      - Renamed #[wasm_bindgen] exported function from run() to main() per spec
-      - Added dependencies: reqwest (wasm-streams, json features), once_cell
-      - cargo build -p frontend: PASS (no warnings)
-      - cargo clippy -p frontend -- -D warnings: PASS
-      - Implementation follows exact pattern from FRONTEND.md lines 117-124
+       - Created frontend/src/services.rs with init_api_base_url() and get_api_base_url()
+       - Updated frontend/src/main.rs to call services::init_api_base_url().await before mount_to_body(App)
+       - Renamed #[wasm_bindgen] exported function from run() to main() per spec
+       - Added dependencies: reqwest (wasm-streams, json features), once_cell
+       - cargo build -p frontend: PASS (no warnings)
+       - cargo clippy -p frontend -- -D warnings: PASS
+       - Implementation follows exact pattern from FRONTEND.md lines 117-124
+- Completed task 01-task-login-backend.md: Verified and fixed login backend implementation:
+       - All providers, models, use-cases, and endpoints were already implemented from bootstrap
+       - Fixed bcrypt password verification in use_cases/auth.rs to check boolean result (returns Ok(false) for wrong passwords)
+       - All 4 auth integration tests now pass: test_login_successful, test_login_wrong_password, test_login_nonexistent_email, test_login_missing_fields_returns_error
+       - cargo check --workspace: PASS (8 acceptable warnings for unused code)
+       - cargo build -p backend: PASS
+       - cargo test -p backend: PASS (17 passed, 11 ignored - external services)

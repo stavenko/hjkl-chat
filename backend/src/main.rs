@@ -77,7 +77,7 @@ async fn run_server(config_path: PathBuf) -> std::io::Result<()> {
         config.smtp.use_tls,
         &config.smtp.username,
         &config.smtp.password,
-        "noreply@example.com",
+        &config.smtp.from_email,
     )
     .expect("Failed to initialize SMTP provider");
 

@@ -38,6 +38,7 @@ pub struct SmtpConfig {
     pub use_tls: bool,
     pub username: String,
     pub password: String,
+    pub from_email: String,
 }
 
 impl Config {

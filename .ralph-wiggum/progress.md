@@ -2,9 +2,9 @@
 
 ## Status
 **Last Updated:** 2026-03-07
-**Tasks Completed:** 9
-**Current Task:** None (all tasks complete)
-**Pending Tasks:** 0
+**Tasks Completed:** 10
+**Current Task:** 01-review-login-backend.md
+**Pending Tasks:** 1
 
 ---
 
@@ -142,11 +142,26 @@ Created because all bootstrap fix tasks are complete and user story 00-bootstrap
     - Frontend: LoginPage at /login route, LoginForm with email/password fields, button disabled state, error display, navigation links
     - All backend and frontend criteria from the user story using headless chrome for DOM verification
 - Completed task 01-manual-testing-login-backend.md: Executed manual verification of all acceptance criteria:
-    - Backend build: PASS (cargo check, cargo build succeed with acceptable warnings)
-    - Backend tests: PASS (27 passed, 0 failed, 11 ignored - external services)
-    - Backend HTTP endpoints: CANNOT VERIFY (requires MinIO service to start)
-    - docker-compose.yml: PASS (includes backend, frontend, MinIO, MailHog)
-    - Frontend implementation: FAIL (login page, form, auth_service, routing not implemented)
-    - Frontend DOM verification: CANNOT VERIFY (chromium not installed, but code not implemented anyway)
-    - Overall result: FAIL - Backend is functional (verified via integration tests), but frontend is not implemented
-    - Report written to /project/.ralph-wiggum/reports/01-manual-testing-login-backend.md
+     - Backend build: PASS (cargo check, cargo build succeed with acceptable warnings)
+     - Backend tests: PASS (27 passed, 0 failed, 11 ignored - external services)
+     - Backend HTTP endpoints: CANNOT VERIFY (requires MinIO service to start)
+     - docker-compose.yml: PASS (includes backend, frontend, MinIO, MailHog)
+     - Frontend implementation: FAIL (login page, form, auth_service, routing not implemented)
+     - Frontend DOM verification: CANNOT VERIFY (chromium not installed, but code not implemented anyway)
+     - Overall result: FAIL - Backend is functional (verified via integration tests), but frontend is not implemented
+     - Report written to /project/.ralph-wiggum/reports/01-manual-testing-login-backend.md
+- Created task 01-review-login-backend.md: Comprehensive review task to verify code quality, spec compliance, and completeness of login backend implementation. Created because 01-manual-testing-login-backend.md was a manual-testing task. The review task will check:
+   - Test suite verification (all tests pass, no skipped/ignored without reason)
+   - No hardcoded values in main code
+   - No TODOs or unimplemented code
+   - Build and run verification with clippy
+   - Spec compliance with BACKEND.md, GENERIC-BACKEND.md, RUST-COMMON-SPEC.md, PROJECT-STRUCTURE.md
+   - Manual testing report review
+   - Fix tasks will be created for any issues found
+- Completed task 01-task-fix-01-add-from-email-to-smtp-config.md: Added from_email field to SMTP config:
+     - Added from_email field to SmtpConfig struct in backend/src/config.rs
+     - Updated backend/src/main.rs to read from config instead of hardcoded value
+     - Updated docker/test/config.toml with from_email configuration
+     - cargo check -p backend: PASS (8 pre-existing warnings for unused code)
+     - grep verification: No hardcoded email addresses in production code
+     - Report written to /project/.ralph-wiggum/reports/01-task-fix-01-add-from-email-to-smtp-config.md

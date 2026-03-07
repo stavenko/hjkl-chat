@@ -1,17 +1,34 @@
 # Progress
 
 ## Status
-**Last Updated:** 2026-03-07
-**Tasks Completed:** 10
-**Current Task:** 01-review-login-backend.md
-**Pending Tasks:** 1
+**Last Updated:** 2026-03-08
+**Tasks Completed:** 11
+**Current Task:** None
+**Pending Tasks:** 0
 
 ---
 
 ## New Tasks Created
+None - awaiting next task creation based on completed task type.
 
-### 01-task-login-backend.md
-Created because all bootstrap fix tasks are complete and user story 00-bootstrap-and-testing.md is fully implemented. The first incomplete user story is 01-login.md which has no implementation yet. This task implements the backend login endpoint with all required providers (SQLite, S3, LocalFileSystem, SMTP), models (User, Session), use-cases (auth::login), endpoints (POST /api/auth/login), database migrations, and integration tests.
+---
+
+## Session Log
+
+### 2026-03-08
+
+- Completed task 02-task-login-frontend.md: Fixed frontend services.rs to use browser-compatible fetch API:
+  - Replaced reqwest-based config.json fetching with window().fetch() via web_sys
+  - Added ApiBaseUrl struct with Clone derive for Leptos context API
+  - Changed from once_cell::Lazy<RwLock<String>> to provide_context/expect_context pattern
+  - Updated init_api_base_url() to use wasm_bindgen_futures::JsFuture for Promise handling
+  - cargo check -p frontend: PASS
+  - cargo clippy -p frontend -- -D warnings: PASS
+  - cargo build -p frontend: PASS
+  - All frontend login components were already implemented: app.rs (routing), auth_state.rs (token storage), auth_service.rs (login API), authentication_input.rs, authentication_button.rs, login_form.rs, login_page.rs
+  - Report written to /project/.ralph-wiggum/reports/02-task-login-frontend.md
+
+### 2026-03-07
 
 ---
 

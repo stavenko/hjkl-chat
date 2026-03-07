@@ -1,8 +1,8 @@
 use leptos::*;
 
 mod app;
-mod auth_state;
 mod auth_service;
+mod auth_state;
 mod components;
 mod pages;
 mod services;

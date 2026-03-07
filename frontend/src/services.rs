@@ -1,21 +1,27 @@
-use once_cell::sync::Lazy;
-use std::sync::RwLock;
+use leptos::*;
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::JsFuture;
 
-static API_BASE_URL: Lazy<RwLock<String>> = Lazy::new(|| RwLock::new(String::new()));
+#[derive(Clone)]
+struct ApiBaseUrl(String);
 
-pub async fn init_api_base_url() {
-    let resp = reqwest::get("/config.json")
-        .await
-        .expect("Failed to fetch config.json");
-    let config: serde_json::Value = resp.json().await.expect("Failed to parse config.json");
-    let api_base_url = config["api_base_url"]
-        .as_str()
-        .expect("config.json must contain api_base_url")
-        .to_string();
-    *API_BASE_URL.write().expect("Failed to write API_BASE_URL") = api_base_url;
+pub fn get_api_base_url() -> String {
+    expect_context::<ApiBaseUrl>().0.clone()
 }
 
-#[allow(dead_code)]
-pub fn get_api_base_url() -> String {
-    API_BASE_URL.read().expect("Failed to read API_BASE_URL").clone()
+pub async fn init_api_base_url() {
+    let window = web_sys::window().unwrap();
+    let promise = window.fetch_with_str("/config.json");
+    let response_value = JsFuture::from(promise).await.unwrap();
+    let response: web_sys::Response = response_value.dyn_into().unwrap();
+    let text_promise = response.text().unwrap();
+    let text: wasm_bindgen::JsValue = JsFuture::from(text_promise).await.unwrap();
+    let config: serde_json::Value =
+        serde_json::from_str(text.as_string().unwrap().as_str()).unwrap();
+    let api_base_url = config["api_base_url"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    provide_context(ApiBaseUrl(api_base_url));
 }

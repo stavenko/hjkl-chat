@@ -1,5 +1,12 @@
 # Project: hjkl-chat
 
+## Git Workflow
+
+- **Fast-forward merges only.** Never use `--no-ff`.
+- Every branch must be rebased onto master before merging: `git rebase master`
+- Merge with: `git merge --ff-only <branch>`
+- If the branch cannot fast-forward, rebase it first — do not create merge commits.
+
 ## Architecture
 
 - **Frontend**: Leptos 0.6 CSR, built with Trunk (`trunk build`, `trunk serve` on port 8080)

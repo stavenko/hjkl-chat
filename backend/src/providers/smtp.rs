@@ -14,11 +14,13 @@ pub enum SMTPProviderError {
 
 pub type SMTPProviderResult<T> = Result<T, SMTPProviderError>;
 
+#[allow(dead_code)]
 pub struct SMTPProvider {
     transporter: AsyncSmtpTransport<lettre::Tokio1Executor>,
     from_address: Mailbox,
 }
 
+#[allow(dead_code)]
 impl SMTPProvider {
     pub fn new(
         host: &str,

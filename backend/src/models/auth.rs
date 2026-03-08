@@ -33,8 +33,10 @@ pub enum AuthError {
     JwtError(#[from] jsonwebtoken::errors::Error),
     #[error("Database error: {0}")]
     DatabaseError(#[from] rusqlite::Error),
+    #[allow(dead_code)]
     #[error("Missing email")]
     MissingEmail,
+    #[allow(dead_code)]
     #[error("Missing password")]
     MissingPassword,
     #[error("Database error: {0}")]

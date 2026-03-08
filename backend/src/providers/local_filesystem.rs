@@ -33,6 +33,7 @@ impl LocalFileSystemProvider {
         Ok(path)
     }
 
+    #[allow(dead_code)]
     pub fn delete(&self, path: &Path) -> LocalFileSystemProviderResult<()> {
         if !path.starts_with(&self.root) {
             return Err(LocalFileSystemProviderError::InvalidPath);

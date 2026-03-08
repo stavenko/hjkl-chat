@@ -2,9 +2,9 @@
 
 ## Status
 **Last Updated:** 2026-03-08
-**Tasks Completed:** 15
+**Tasks Completed:** 16
 **Current Task:** None
-**Pending Tasks:** 1
+**Pending Tasks:** 0
 
 ---
 
@@ -256,6 +256,19 @@
     - cargo clippy -p frontend -- -D warnings: PASS
     - cargo test -p frontend: PASS (5 passed, 0 failed, 14 ignored)
     - Report written to /project/.ralph-wiggum/reports/02-task-fix-01-remove-hardcoded-api-urls.md
+- Completed task 02-task-fix-02-add-allow-dead-code-attributes.md: Added #[allow(dead_code)] attributes to backend code:
+    - Added to AuthError::MissingEmail, AuthError::MissingPassword (validation errors not yet implemented)
+    - Added to Session::from_row (database method for future use)
+    - Added to S3ProviderError::AwsConfig, S3Provider::delete_object (AWS deployment support, delete functionality)
+    - Added to LocalFileSystemProvider::delete (delete functionality not yet required)
+    - Added to SQLiteProvider::execute, SQLiteProvider::query_all (generic methods for future queries)
+    - Added to SMTPProvider struct and impl block (email provider for password reset functionality)
+    - cargo check -p backend: PASS
+    - cargo clippy -p backend -- -D warnings: PASS
+    - cargo test -p backend: PASS (27 passed, 0 failed, 11 ignored)
+    - cargo check --workspace: PASS
+    - cargo clippy --workspace -- -D warnings: PASS
+    - Report written to /project/.ralph-wiggum/reports/02-task-fix-02-add-allow-dead-code-attributes.md
 
 ## Pending Tasks
-- 02-task-fix-02-add-allow-dead-code-attributes.md: Add #[allow(dead_code)] attributes to backend code to fix clippy warnings
+- None

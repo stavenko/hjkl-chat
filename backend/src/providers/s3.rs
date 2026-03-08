@@ -6,6 +6,7 @@ use aws_sdk_s3::config::Credentials;
 pub enum S3ProviderError {
     #[error("AWS SDK error: {0}")]
     AwsSdk(String),
+    #[allow(dead_code)]
     #[error("AWS config error: {0}")]
     AwsConfig(String),
     #[error("Byte stream error: {0}")]
@@ -85,6 +86,7 @@ impl S3Provider {
         Ok(body_bytes.into_bytes().to_vec())
     }
 
+    #[allow(dead_code)]
     pub async fn delete_object(&self, key: &str) -> S3ProviderResult<()> {
         self.client
             .delete_object()

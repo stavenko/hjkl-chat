@@ -13,6 +13,7 @@ pub struct Session {
 }
 
 impl Session {
+    #[allow(dead_code)]
     pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
         Ok(Session {
             id: row.get("id")?,

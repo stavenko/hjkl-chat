@@ -70,6 +70,7 @@ impl SQLiteProvider {
         self.conn.lock().map_err(|e| SQLiteProviderError::Lock(e.to_string()))
     }
 
+    #[allow(dead_code)]
     pub fn execute(&self, sql: &str, params: &[rusqlite::types::ValueRef<'_>]) -> SQLiteProviderResult<usize> {
         let conn = self.get_connection()?;
         let value_params: Vec<rusqlite::types::Value> = params.iter().map(|v| rusqlite::types::Value::from(*v)).collect();
@@ -103,6 +104,7 @@ impl SQLiteProvider {
         }
     }
 
+    #[allow(dead_code)]
     pub fn query_all<T, F>(&self, sql: &str, params: &[rusqlite::types::ValueRef<'_>], mut f: F) -> SQLiteProviderResult<Vec<T>>
     where
         F: FnMut(&rusqlite::Row) -> rusqlite::Result<T>,

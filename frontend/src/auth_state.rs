@@ -38,6 +38,12 @@ pub struct AuthState {
     user_email_write: WriteSignal<Option<String>>,
 }
 
+impl Default for AuthState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[allow(dead_code)]
 impl AuthState {
     pub fn new() -> Self {

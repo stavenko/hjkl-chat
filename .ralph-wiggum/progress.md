@@ -2,14 +2,18 @@
 
 ## Status
 **Last Updated:** 2026-03-08
-**Tasks Completed:** 11
+**Tasks Completed:** 12
 **Current Task:** None
 **Pending Tasks:** 0
 
 ---
 
 ## New Tasks Created
-None - awaiting next task creation based on completed task type.
+- Created task 02-test-login-frontend.md: Integration tests for frontend login implementation. Created because 02-task-login-frontend.md was an implementation task. This test task will verify:
+  - API service calls to backend login endpoint
+  - Configuration loading from config.json
+  - Auth state token storage in localStorage
+  - Component interactions (LoginForm, AuthenticationButton, routing)
 
 ---
 
@@ -195,3 +199,16 @@ None - awaiting next task creation based on completed task type.
        - cargo test -p backend: PASS (27 passed, 0 failed, 11 ignored)
        - Report written to /project/.ralph-wiggum/reports/01-task-fix-02-fix-clippy-warnings.md
 - Created task 02-task-login-frontend.md: Frontend login implementation for user story 01-login.md. Created because all backend login functionality is complete (verified by integration tests and manual testing), but the frontend login page, form, auth_service, routing, and authentication state are not implemented. This task will implement LoginPage at /login route, LoginForm with email/password fields, AuthenticationInput and AuthenticationButton reusable components, auth_service module with login() function, AuthState for token storage, and routing with protected route at / that redirects to /login.
+- Completed task 02-test-login-frontend.md: Created integration tests for frontend login implementation:
+  - Created frontend/tests/login_integration_tests.rs with 19 tests covering:
+    - API service tests: request body format, response parsing (success/error), endpoint verification
+    - Configuration tests: API base URL initialization and retrieval
+    - Auth state tests: token storage/retrieval in localStorage, persistence, logout
+    - Component interaction tests: form validation, auth service calls
+  - 5 tests pass in native Rust environment (JSON parsing, form validation)
+  - 14 tests ignored with documented reasons (require wasm/browser environment with web_sys APIs)
+  - All ignored tests have #[ignore = "Requires wasm/browser environment"] with clear explanations
+  - cargo test -p frontend: PASS (5 passed, 0 failed, 14 ignored)
+  - cargo clippy -p frontend -- -D warnings: PASS
+  - cargo check --workspace: PASS
+  - Report written to /project/.ralph-wiggum/reports/02-test-login-frontend.md

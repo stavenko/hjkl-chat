@@ -1,13 +1,6 @@
 use leptos::*;
-
-mod app;
-mod auth_service;
-mod auth_state;
-mod components;
-mod pages;
-mod services;
-
-use app::App;
+use frontend::app::App;
+use frontend::services;
 
 #[allow(clippy::main_recursion)]
 #[wasm_bindgen::prelude::wasm_bindgen]

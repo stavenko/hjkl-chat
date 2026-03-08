@@ -1,0 +1,216 @@
+/* Auto-generated from design-tokens.json — do not edit by hand */
+
+/* ===== Core tokens (theme-invariant) ===== */
+:root {
+  /* Font families */
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Font sizes */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
+
+  /* Font weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Letter spacing */
+  --letter-spacing-normal: 0;
+  --letter-spacing-tight: -0.5px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-input-padding: 12px;
+  --spacing-surface-gap: 15px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-section-gap: 25px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Stroke width */
+  --stroke-default: 1px;
+  --stroke-thick: 2px;
+
+  /* Sizing */
+  --size-icon-sm: 16px;
+  --size-icon-md: 20px;
+  --size-icon-lg: 24px;
+  --size-input-height: 40px;
+  --size-button-height: 44px;
+  --size-strength-bar-height: 6px;
+  --size-form-max-width: 400px;
+
+  /* Opacity */
+  --opacity-disabled: 0.5;
+  --opacity-placeholder: 0.6;
+
+  /* Palette (raw values, use semantic tokens in components) */
+  --palette-white: #ffffff;
+  --palette-black: #000000;
+  --palette-gray-50: #fafafa;
+  --palette-gray-100: #f5f5f5;
+  --palette-gray-300: #d1d5db;
+  --palette-gray-400: #999999;
+  --palette-gray-500: #666666;
+  --palette-gray-700: #333333;
+  --palette-gray-800: #1f2937;
+  --palette-gray-900: #111827;
+  --palette-red-50: #fef2f2;
+  --palette-red-400: #f87171;
+  --palette-red-500: #dc2626;
+  --palette-red-900: #450a0a;
+  --palette-green-50: #f0fdf4;
+  --palette-green-400: #4ade80;
+  --palette-green-500: #16a34a;
+  --palette-green-900: #052e16;
+  --palette-amber-50: #fffbeb;
+  --palette-amber-400: #fbbf24;
+  --palette-amber-500: #d97706;
+  --palette-amber-900: #451a03;
+  --palette-indigo-50: #eef2ff;
+
+  /* Brand */
+  --brand-primary: #007bff;
+  --brand-primary-hover: #0056b3;
+
+  /* Logo */
+  --logo-root-stroke: rgb(177, 177, 177);
+  --logo-root-bg: rgb(255, 255, 255);
+  --logo-h: rgb(28, 119, 59);
+  --logo-h-bg: rgb(100, 255, 189);
+  --logo-j: rgb(210, 135, 21);
+  --logo-j-bg: rgb(241, 209, 159);
+  --logo-k: rgb(137, 21, 183);
+  --logo-k-bg: rgb(233, 178, 255);
+  --logo-l: rgb(55, 163, 157);
+  --logo-l-bg: rgb(187, 237, 235);
+  --logo-bubble: 5px;
+  --logo-font-weight: 700;
+}
+
+/* ===== Light theme (default) ===== */
+:root,
+[data-theme="light"] {
+  /* Background */
+  --color-bg-page: #f5f5f5;
+  --color-bg-surface: #ffffff;
+  --color-bg-surface-alt: #fafafa;
+
+  /* Text */
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-text-muted: #999999;
+  --color-text-inverse: #ffffff;
+
+  /* Semantic */
+  --color-error: #dc2626;
+  --color-error-bg: #fef2f2;
+  --color-success: #16a34a;
+  --color-success-bg: #f0fdf4;
+  --color-warning: #d97706;
+  --color-warning-bg: #fffbeb;
+
+  /* Button */
+  --color-button-primary-bg: #007bff;
+  --color-button-primary-hover: #0056b3;
+  --color-button-primary-text: #ffffff;
+  --color-button-disabled-bg: #d1d5db;
+  --color-button-disabled-text: #999999;
+
+  /* Input */
+  --color-input-bg: #ffffff;
+  --color-input-border: #d1d5db;
+  --color-input-border-focus: #007bff;
+  --color-input-border-error: #dc2626;
+  --color-input-placeholder: #999999;
+
+  /* Link */
+  --color-link: #007bff;
+  --color-link-hover: #0056b3;
+
+  /* Strength */
+  --color-strength-weak: #dc2626;
+  --color-strength-medium: #d97706;
+  --color-strength-strong: #16a34a;
+
+  /* File browser */
+  --color-fb-row-odd: #ffffff;
+  --color-fb-row-even: #fafafa;
+  --color-fb-project-active: #eef2ff;
+  --color-fb-project-inactive: #ffffff;
+
+  /* Shadows */
+  --shadow-card: 4px 4px 3px 0 #0000001a;
+  --shadow-card-hover: 0 4px 6px -1px #00000026;
+  --shadow-input-focus: 0 0 0 3px #007bff40;
+}
+
+/* ===== Dark theme ===== */
+[data-theme="dark"] {
+  /* Background */
+  --color-bg-page: #111827;
+  --color-bg-surface: #1f2937;
+  --color-bg-surface-alt: #333333;
+
+  /* Text */
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #d1d5db;
+  --color-text-muted: #666666;
+  --color-text-inverse: #111827;
+
+  /* Semantic */
+  --color-error: #f87171;
+  --color-error-bg: #450a0a;
+  --color-success: #4ade80;
+  --color-success-bg: #052e16;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #451a03;
+
+  /* Button */
+  --color-button-primary-bg: #007bff;
+  --color-button-primary-hover: #0056b3;
+  --color-button-primary-text: #ffffff;
+  --color-button-disabled-bg: #333333;
+  --color-button-disabled-text: #666666;
+
+  /* Input */
+  --color-input-bg: #1f2937;
+  --color-input-border: #666666;
+  --color-input-border-focus: #007bff;
+  --color-input-border-error: #f87171;
+  --color-input-placeholder: #666666;
+
+  /* Link */
+  --color-link: #5ba8ff;
+  --color-link-hover: #8dc4ff;
+
+  /* Strength */
+  --color-strength-weak: #f87171;
+  --color-strength-medium: #fbbf24;
+  --color-strength-strong: #4ade80;
+
+  /* File browser */
+  --color-fb-row-odd: #1f2937;
+  --color-fb-row-even: #333333;
+  --color-fb-project-active: #1e1b4b;
+  --color-fb-project-inactive: #1f2937;
+
+  /* Shadows */
+  --shadow-card: 4px 4px 3px 0 #00000066;
+  --shadow-card-hover: 0 4px 6px -1px #00000080;
+  --shadow-input-focus: 0 0 0 3px #007bff66;
+}

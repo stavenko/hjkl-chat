@@ -3,16 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frontend</title>
+    <title>hjkl</title>
+    <link data-trunk rel="css" href="styles/tokens.css" />
+    <link data-trunk rel="css" href="styles/components.css" />
 </head>
 <body>
     <div id="app"></div>
-    <script>
-      window.addEventListener('TrunkApplicationStarted', () => {
-        if (typeof window.wasmBindings?.main === 'function') {
-          window.wasmBindings.main();
-        }
-      });
-    </script>
 </body>
 </html>

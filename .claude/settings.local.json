@@ -62,7 +62,9 @@
       "Bash(chromedriver:*)",
       "Bash(npx @puppeteer/browsers install:*)",
       "Bash(CHROMEDRIVER=/tmp/chromedriver-install/chromedriver/mac_arm-145.0.7632.160/chromedriver-mac-arm64/chromedriver wasm-pack test:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

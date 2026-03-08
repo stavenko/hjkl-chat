@@ -2,9 +2,9 @@
 
 ## Status
 **Last Updated:** 2026-03-08
-**Tasks Completed:** 13
+**Tasks Completed:** 15
 **Current Task:** None
-**Pending Tasks:** 0
+**Pending Tasks:** 1
 
 ---
 
@@ -220,11 +220,42 @@
    - cargo check --workspace: PASS
    - Report written to /project/.ralph-wiggum/reports/02-test-login-frontend.md
 - Completed task 02-manual-testing-login-frontend.md: Executed manual verification of all acceptance criteria from user story 01-login.md:
-   - Backend build: PASS (cargo check and cargo build succeed with 8 acceptable dead_code warnings)
-   - Frontend build: PASS (cargo check and cargo build succeed without warnings)
-   - Backend tests: PASS (27 passed, 0 failed, 11 ignored with documented reasons)
-   - Backend HTTP endpoints: CANNOT VERIFY (MinIO Docker networking issue on ARM64 platform)
-   - Frontend DOM verification: CANNOT VERIFY (Chromium not installed)
-   - Frontend code review: PASS (all components verified via source code inspection)
-   - Overall result: PARTIAL PASS - Backend and frontend code are complete and tested, but HTTP endpoint and DOM verification blocked by environment issues
-   - Report written to /project/.ralph-wiggum/reports/02-manual-testing-login-frontend.md
+    - Backend build: PASS (cargo check and cargo build succeed with 8 acceptable dead_code warnings)
+    - Frontend build: PASS (cargo check and cargo build succeed without warnings)
+    - Backend tests: PASS (27 passed, 0 failed, 11 ignored with documented reasons)
+    - Backend HTTP endpoints: CANNOT VERIFY (MinIO Docker networking issue on ARM64 platform)
+    - Frontend DOM verification: CANNOT VERIFY (Chromium not installed)
+    - Frontend code review: PASS (all components verified via source code inspection)
+    - Overall result: PARTIAL PASS - Backend and frontend code are complete and tested, but HTTP endpoint and DOM verification blocked by environment issues
+    - Report written to /project/.ralph-wiggum/reports/02-manual-testing-login-frontend.md
+- Created task 02-review-login-frontend.md: Comprehensive review task to verify code quality, spec compliance, and completeness of frontend login implementation. Created because 02-manual-testing-login-frontend.md was a manual-testing task. The review task will check:
+    - Test suite verification (all tests pass, no skipped/ignored without reason)
+    - No hardcoded values in main code
+    - No TODOs or unimplemented code
+    - Build and run verification with clippy
+    - Spec compliance with FRONTEND.md, GENERIC-FRONTEND.md, DESIGN.md, BACKEND.md, GENERIC-BACKEND.md, RUST-COMMON-SPEC.md, PROJECT-STRUCTURE.md
+    - Manual testing report review
+    - Acceptance criteria verification
+    - Fix tasks will be created for any issues found
+- Completed task 02-review-login-frontend.md: Executed comprehensive review of frontend login implementation:
+    - Test suite: PASS (5 passed, 14 ignored with documented reasons for WASM/browser requirement)
+    - No hardcoded values: FAIL (found hardcoded "http://localhost:8080" in frontend/src/services.rs:19,34 - violates spec requirement to fail with clear error if config missing)
+    - No TODOs/unimplemented: PASS
+    - Build/run verification: PASS (frontend builds without warnings)
+    - Clippy/compiler warnings: FAIL (8 dead_code warnings in backend code - unused error variants and methods in API)
+    - Spec compliance: MOSTLY PASS (all patterns followed except hardcoded API URLs)
+    - Acceptance criteria: PASS (all criteria met based on code review)
+    - Created 2 fix tasks for issues found:
+      * 02-task-fix-01-remove-hardcoded-api-urls.md: Remove hardcoded fallback URLs from services.rs, make config loading required per spec
+      * 02-task-fix-02-add-allow-dead-code-attributes.md: Add #[allow(dead_code)] attributes to backend code with explanatory comments
+- Completed task 02-task-fix-01-remove-hardcoded-api-urls.md: Removed hardcoded API URLs from frontend/src/services.rs:
+    - Modified get_api_base_url() to panic with clear error message instead of returning hardcoded "http://localhost:8080"
+    - Modified fetch_config() to panic with specific error messages for each failure case
+    - Error messages clearly indicate what configuration is missing and how to fix it
+    - cargo check -p frontend: PASS
+    - cargo clippy -p frontend -- -D warnings: PASS
+    - cargo test -p frontend: PASS (5 passed, 0 failed, 14 ignored)
+    - Report written to /project/.ralph-wiggum/reports/02-task-fix-01-remove-hardcoded-api-urls.md
+
+## Pending Tasks
+- 02-task-fix-02-add-allow-dead-code-attributes.md: Add #[allow(dead_code)] attributes to backend code to fix clippy warnings

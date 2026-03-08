@@ -16,7 +16,7 @@ pub fn get_api_base_url() -> String {
         }
     }
     
-    "http://localhost:8080".to_string()
+    panic!("API base URL not initialized. Ensure init_api_base_url() was called before app mount.");
 }
 
 pub async fn init_api_base_url() {
@@ -31,47 +31,49 @@ pub async fn init_api_base_url() {
 }
 
 async fn fetch_config() -> String {
-    let default_url = "http://localhost:8080".to_string();
-    
     let window = match web_sys::window() {
         Some(w) => w,
-        None => return default_url,
+        None => panic!("Failed to get window object: Running outside browser context"),
     };
     
     let promise = window.fetch_with_str("/config.json");
     
     let response_value = match JsFuture::from(promise).await {
         Ok(v) => v,
-        Err(_) => return default_url,
+        Err(e) => panic!("Failed to fetch config.json: {:?}", e),
     };
     
     let response: web_sys::Response = match response_value.dyn_into() {
         Ok(r) => r,
-        Err(_) => return default_url,
+        Err(e) => panic!("Failed to convert fetch response: {:?}", e),
     };
+    
+    if !response.ok() {
+        panic!("Failed to load config.json: HTTP {}", response.status());
+    }
     
     let text_promise = match response.text() {
         Ok(p) => p,
-        Err(_) => return default_url,
+        Err(e) => panic!("Failed to read config.json body: {:?}", e),
     };
     
     let text = match JsFuture::from(text_promise).await {
         Ok(t) => t,
-        Err(_) => return default_url,
+        Err(e) => panic!("Failed to await config.json text: {:?}", e),
     };
     
     let text_str = match text.as_string() {
         Some(s) => s,
-        None => return default_url,
+        None => panic!("Failed to convert config.json to string"),
     };
     
     let config: serde_json::Value = match serde_json::from_str(&text_str) {
         Ok(c) => c,
-        Err(_) => return default_url,
+        Err(e) => panic!("Failed to parse config.json as JSON: {}", e),
     };
     
-    config["api_base_url"]
-        .as_str()
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| default_url)
+    match config["api_base_url"].as_str() {
+        Some(url) => url.to_string(),
+        None => panic!("config.json missing required field 'api_base_url'"),
+    }
 }

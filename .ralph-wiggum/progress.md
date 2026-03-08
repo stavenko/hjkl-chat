@@ -111,6 +111,17 @@
 ### 2026-03-08 (continued)
 
 - Completed task 04-task-registration-verify-complete-backend.md: Fixed compilation errors in previously implemented registration verify and complete functionality:
+
+---
+
+## New Tasks Created
+- Created task 04-test-registration-verify-complete-backend.md: Integration tests for backend registration verify and complete implementation. Created because 04-task-registration-verify-complete-backend.md was an implementation task. This test task will verify:
+  - POST /api/auth/registration/verify endpoint with curl requests (valid code, invalid code, expired session, unknown session)
+  - POST /api/auth/registration/complete endpoint with curl requests (successful completion, password mismatch, weak password, expired/unknown/used session)
+  - End-to-end registration flow from init to complete
+  - Database persistence (users, passwords, sessions tables)
+  - JWT token validation
+  - MailHog integration for verification code retrieval
     - Added #[derive(Clone)] to LocalFileSystemProvider struct
     - Fixed convert_verify_response to not call .to_rfc3339() on already-converted String
     - Changed fs_provider.clone() to Arc::new(fs_provider) in main.rs

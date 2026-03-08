@@ -27,6 +27,9 @@ async-trait = "0.1"
 
 [dev-dependencies]
 actix-rt = "2"
+actix-test = "0.1"
+actix-http = "3"
+anyhow = "1"
 uuid = { version = "1", features = ["v4"] }
 aws-sdk-s3 = { version = "1", features = ["rt-tokio"] }
 aws-config = "1"

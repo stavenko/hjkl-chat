@@ -3,17 +3,13 @@ use aws_sdk_s3::Client as S3Client;
 use aws_sdk_s3::primitives::ByteStream;
 use std::time::Duration;
 
-use crate::tests::utils::random_bucket_prefix;
-
 const MINIO_ENDPOINT: &str = "http://localhost:9000";
 const MINIO_ACCESS_KEY: &str = "minioadmin";
 const MINIO_SECRET_KEY: &str = "minioadmin";
 
 async fn create_s3_client() -> S3Client {
-    let region = Region::new("us-east-1");
-
-    let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
-        .region(region)
+    let config = aws_sdk_s3::Config::builder()
+        .region(Region::new("us-east-1"))
         .endpoint_url(MINIO_ENDPOINT)
         .credentials_provider(
             aws_sdk_s3::config::Credentials::new(
@@ -24,10 +20,11 @@ async fn create_s3_client() -> S3Client {
                 "test",
             ),
         )
-        .load()
-        .await;
+        .force_path_style(true)
+        .behavior_version_latest()
+        .build();
 
-    S3Client::new(&config)
+    S3Client::from_conf(config)
 }
 
 async fn wait_for_minio_health_check(max_retries: u32) -> Result<(), String> {
@@ -48,7 +45,6 @@ async fn wait_for_minio_health_check(max_retries: u32) -> Result<(), String> {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MinIO service running"]
 async fn test_minio_health_check() {
     let result = wait_for_minio_health_check(10).await;
     assert!(
@@ -59,10 +55,8 @@ async fn test_minio_health_check() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MinIO service running"]
 async fn test_minio_create_bucket() {
-    let bucket_prefix = random_bucket_prefix();
-    let bucket_name = format!("{}{}", bucket_prefix, uuid::Uuid::new_v4().simple());
+    let bucket_name = format!("test-{}", uuid::Uuid::new_v4());
 
     let result = create_s3_client()
         .await
@@ -87,10 +81,8 @@ async fn test_minio_create_bucket() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MinIO service running"]
 async fn test_minio_upload_download_object() {
-    let bucket_prefix = random_bucket_prefix();
-    let bucket_name = format!("{}{}", bucket_prefix, uuid::Uuid::new_v4().simple());
+    let bucket_name = format!("test-{}", uuid::Uuid::new_v4());
     let object_key = "test-object.txt";
     let object_content = b"Hello, MinIO!";
 
@@ -140,10 +132,8 @@ async fn test_minio_upload_download_object() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MinIO service running"]
 async fn test_minio_delete_bucket() {
-    let bucket_prefix = random_bucket_prefix();
-    let bucket_name = format!("{}{}", bucket_prefix, uuid::Uuid::new_v4().simple());
+    let bucket_name = format!("test-{}", uuid::Uuid::new_v4());
 
     let client = create_s3_client().await;
 
@@ -164,10 +154,8 @@ async fn test_minio_delete_bucket() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MinIO service running"]
 async fn test_minio_bucket_cleanup() {
-    let bucket_prefix = random_bucket_prefix();
-    let bucket_name = format!("{}{}", bucket_prefix, uuid::Uuid::new_v4().simple());
+    let bucket_name = format!("test-{}", uuid::Uuid::new_v4());
 
     let client = create_s3_client().await;
 

@@ -13,9 +13,8 @@ use config::Config;
 use providers::{LocalFileSystemProvider, S3Provider, SMTPProvider, SQLiteProvider};
 use std::path::PathBuf;
 use std::sync::Arc;
-use use_cases::registration::{
-    RegistrationCompleteUseCase, RegistrationUseCase, RegistrationVerifyUseCase,
-};
+use use_cases::registration::RegistrationUseCase;
+use use_cases::{RegistrationCompleteUseCase, RegistrationVerifyUseCase};
 
 #[derive(Parser, Debug)]
 #[command(name = "backend")]

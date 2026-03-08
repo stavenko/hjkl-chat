@@ -12,7 +12,7 @@ const MAILHOG_API_HOST: &str = "http://localhost:8025";
 
 async fn wait_for_mailhog_health_check(max_retries: u32) -> Result<(), String> {
     for _i in 0..max_retries {
-        match reqwest::get(format!("{}/api/v2", MAILHOG_API_HOST)).await {
+        match reqwest::get(format!("{}/api/v2/messages", MAILHOG_API_HOST)).await {
             Ok(response) => {
                 if response.status().is_success() {
                     return Ok(());
@@ -47,8 +47,7 @@ pub async fn send_email(to_email: &str, subject: &str, body: &str) -> Result<(),
         )
         .unwrap();
 
-    let transport = AsyncSmtpTransport::<Tokio1Executor>::relay(MAILHOG_SMTP_HOST)
-        .unwrap()
+    let transport = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(MAILHOG_SMTP_HOST)
         .port(1025)
         .credentials(creds)
         .build();
@@ -63,31 +62,29 @@ pub async fn send_email(to_email: &str, subject: &str, body: &str) -> Result<(),
 pub async fn get_mailhog_messages(email: &str) -> Result<Vec<serde_json::Value>, reqwest::Error> {
     let url = format!("{}/api/v2/messages", MAILHOG_API_HOST);
     let response = reqwest::get(&url).await?;
-    let messages: serde_json::Value = response.json().await?;
+    let body: serde_json::Value = response.json().await?;
 
-    let filtered: Vec<serde_json::Value> = messages
-        .as_array()
-        .unwrap_or(&Vec::new())
-        .iter()
-        .filter(|msg| {
-            msg.get("From")
-                .and_then(|f| f.as_str())
-                .map(|f| f.contains("test@example.com"))
-                .unwrap_or(false)
-                && msg
-                    .get("To")
-                    .and_then(|t| t.as_str())
-                    .map(|t| t.contains(email))
-                    .unwrap_or(false)
-        })
+    let items = body.get("items")
+        .and_then(|v| v.as_array())
         .cloned()
+        .unwrap_or_default();
+
+    let filtered: Vec<serde_json::Value> = items
+        .into_iter()
+        .filter(|msg| {
+            msg.pointer("/Content/Headers/To")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().any(|t| {
+                    t.as_str().map(|s| s.contains(email)).unwrap_or(false)
+                }))
+                .unwrap_or(false)
+        })
         .collect();
 
     Ok(filtered)
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MailHog service running"]
 async fn test_mailhog_health_check() {
     let result = wait_for_mailhog_health_check(10).await;
     assert!(
@@ -98,7 +95,6 @@ async fn test_mailhog_health_check() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MailHog service running"]
 async fn test_mailhog_send_email() {
     let test_email = unique_email();
     let subject = "Test Email";
@@ -116,7 +112,6 @@ async fn test_mailhog_send_email() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MailHog service running"]
 async fn test_mailhog_retrieve_emails() {
     let test_email = unique_email();
     let subject = "Retrieve Test";
@@ -135,7 +130,6 @@ async fn test_mailhog_retrieve_emails() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MailHog service running"]
 async fn test_mailhog_verify_email_content() {
     let test_email = unique_email();
     let subject = "Content Verification";
@@ -148,9 +142,9 @@ async fn test_mailhog_verify_email_content() {
     assert!(!messages.is_empty(), "Should have messages");
 
     let message = messages.first().unwrap();
-    let from = message.get("From").unwrap().as_str().unwrap();
-    let to = message.get("To").unwrap().as_str().unwrap();
-    let msg_subject = message.get("Subject").unwrap().as_str().unwrap();
+    let from = message.pointer("/Content/Headers/From/0").and_then(|v| v.as_str()).unwrap();
+    let to = message.pointer("/Content/Headers/To/0").and_then(|v| v.as_str()).unwrap();
+    let msg_subject = message.pointer("/Content/Headers/Subject/0").and_then(|v| v.as_str()).unwrap();
 
     assert!(
         from.contains("test@example.com"),
@@ -170,7 +164,6 @@ async fn test_mailhog_verify_email_content() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MailHog service running"]
 async fn test_mailhog_multiple_emails() {
     let test_email = unique_email();
 

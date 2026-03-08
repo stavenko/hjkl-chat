@@ -136,7 +136,6 @@ async fn test_concurrent_isolation_resources() {
 }
 
 #[actix_rt::test]
-#[ignore = "Requires MailHog service running"]
 async fn test_concurrent_mailhog_emails() {
     let test_emails: Vec<String> = (0..3).map(|_| unique_email()).collect();
 

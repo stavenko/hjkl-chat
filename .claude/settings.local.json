@@ -28,7 +28,26 @@
       "WebFetch(domain:vectorwitch.com)",
       "mcp__penpot__export_shape",
       "mcp__penpot__penpot_api_info",
-      "mcp__penpot__high_level_overview"
+      "mcp__penpot__high_level_overview",
+      "WebFetch(domain:lucide.dev)",
+      "WebFetch(domain:unpkg.com)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(git -C /Users/vasilijstavenko/projects/hjkl-chat log --oneline -20)",
+      "Bash(cargo test:*)",
+      "Bash(curl:*)",
+      "Bash(trunk build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(trunk serve:*)",
+      "Bash(cargo check:*)",
+      "Bash(xargs:*)",
+      "Bash(ls:*)",
+      "Bash(git mv:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker ps:*)"
     ]
   }
 }

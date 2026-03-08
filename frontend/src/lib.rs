@@ -1,4 +1,5 @@
 pub mod app;
+pub mod components;
 pub mod services;
 
 use wasm_bindgen::prelude::wasm_bindgen;

@@ -1,7 +1,7 @@
 use crate::api::endpoints::auth::login;
-use crate::api::endpoints::registration::{
-    registration_complete, registration_init, registration_verify,
-};
+use crate::api::endpoints::auth_registration_complete::registration_complete;
+use crate::api::endpoints::auth_registration_verify::registration_verify;
+use crate::api::endpoints::registration::registration_init;
 use actix_web::web;
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {

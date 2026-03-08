@@ -1,0 +1,13 @@
+[serve]
+port = 8080
+
+[watch]
+ignore = ["dist"]
+
+[[proxy]]
+rewrite = "/api/"
+backend = "http://localhost:5000/api/"
+
+[[proxy]]
+rewrite = "/config.json"
+backend = "http://localhost:8090/config.json"

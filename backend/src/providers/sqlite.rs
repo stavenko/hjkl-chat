@@ -67,13 +67,22 @@ impl SQLiteProvider {
     }
 
     pub fn get_connection(&self) -> SQLiteProviderResult<std::sync::MutexGuard<'_, Connection>> {
-        self.conn.lock().map_err(|e| SQLiteProviderError::Lock(e.to_string()))
+        self.conn
+            .lock()
+            .map_err(|e| SQLiteProviderError::Lock(e.to_string()))
     }
 
     #[allow(dead_code)]
-    pub fn execute(&self, sql: &str, params: &[rusqlite::types::ValueRef<'_>]) -> SQLiteProviderResult<usize> {
+    pub fn execute(
+        &self,
+        sql: &str,
+        params: &[rusqlite::types::ValueRef<'_>],
+    ) -> SQLiteProviderResult<usize> {
         let conn = self.get_connection()?;
-        let value_params: Vec<rusqlite::types::Value> = params.iter().map(|v| rusqlite::types::Value::from(*v)).collect();
+        let value_params: Vec<rusqlite::types::Value> = params
+            .iter()
+            .map(|v| rusqlite::types::Value::from(*v))
+            .collect();
         let result = conn.execute(sql, rusqlite::params_from_iter(value_params))?;
         self.dump_to_s3();
         Ok(result)
@@ -89,13 +98,21 @@ impl SQLiteProvider {
         Ok(result)
     }
 
-    pub fn query_one<T, F>(&self, sql: &str, params: &[rusqlite::types::ValueRef<'_>], mut f: F) -> SQLiteProviderResult<Option<T>>
+    pub fn query_one<T, F>(
+        &self,
+        sql: &str,
+        params: &[rusqlite::types::ValueRef<'_>],
+        mut f: F,
+    ) -> SQLiteProviderResult<Option<T>>
     where
         F: FnMut(&rusqlite::Row) -> rusqlite::Result<T>,
     {
         let conn = self.get_connection()?;
         let mut stmt = conn.prepare(sql)?;
-        let value_params: Vec<rusqlite::types::Value> = params.iter().map(|v| rusqlite::types::Value::from(*v)).collect();
+        let value_params: Vec<rusqlite::types::Value> = params
+            .iter()
+            .map(|v| rusqlite::types::Value::from(*v))
+            .collect();
         let mut rows = stmt.query(rusqlite::params_from_iter(value_params))?;
         if let Some(row) = rows.next()? {
             Ok(Some(f(row)?))
@@ -105,13 +122,21 @@ impl SQLiteProvider {
     }
 
     #[allow(dead_code)]
-    pub fn query_all<T, F>(&self, sql: &str, params: &[rusqlite::types::ValueRef<'_>], mut f: F) -> SQLiteProviderResult<Vec<T>>
+    pub fn query_all<T, F>(
+        &self,
+        sql: &str,
+        params: &[rusqlite::types::ValueRef<'_>],
+        mut f: F,
+    ) -> SQLiteProviderResult<Vec<T>>
     where
         F: FnMut(&rusqlite::Row) -> rusqlite::Result<T>,
     {
         let conn = self.get_connection()?;
         let mut stmt = conn.prepare(sql)?;
-        let value_params: Vec<rusqlite::types::Value> = params.iter().map(|v| rusqlite::types::Value::from(*v)).collect();
+        let value_params: Vec<rusqlite::types::Value> = params
+            .iter()
+            .map(|v| rusqlite::types::Value::from(*v))
+            .collect();
         let mut rows = stmt.query(rusqlite::params_from_iter(value_params))?;
         let mut results = Vec::new();
         while let Some(row) = rows.next()? {
@@ -141,22 +166,6 @@ impl SQLiteProvider {
         });
     }
 
-    #[cfg(test)]
-    pub fn new_for_test(
-        conn: Connection,
-        db_path: PathBuf,
-        s3_provider: Arc<S3Provider>,
-        fs_provider: Arc<LocalFileSystemProvider>,
-        s3_object_path: String,
-    ) -> Self {
-        SQLiteProvider {
-            conn: Arc::new(Mutex::new(conn)),
-            db_path,
-            s3_provider,
-            fs_provider,
-            s3_object_path,
-        }
-    }
 }
 
 fn run_migrations(conn: &Connection) -> rusqlite::Result<()> {
@@ -196,3 +205,4 @@ fn run_migrations(conn: &Connection) -> rusqlite::Result<()> {
 
     Ok(())
 }
+

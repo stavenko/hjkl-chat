@@ -2,21 +2,12 @@ use leptos::*;
 
 use super::icons::*;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PasswordStrength {
-    None,
-    Weak,
-    Medium,
-    Strong,
-}
-
 #[component]
-pub fn PasswordWithStrengthInput(
+pub fn PasswordLoginInput(
     #[prop(into)] label: String,
     #[prop(into)] placeholder: String,
     value: RwSignal<String>,
     #[prop(into)] error: Signal<Option<String>>,
-    #[prop(into)] strength: Signal<PasswordStrength>,
 ) -> impl IntoView {
     let (visible, set_visible) = create_signal(false);
 
@@ -36,26 +27,6 @@ pub fn PasswordWithStrengthInput(
         if let Some(el) = input_ref.get_untracked() {
             let el: &web_sys::HtmlInputElement = el.as_ref();
             el.set_type(if next { "text" } else { "password" });
-        }
-    };
-
-    let strength_class = move |segment: u8| {
-        let s = strength.get();
-        let active = match s {
-            PasswordStrength::None => 0,
-            PasswordStrength::Weak => 1,
-            PasswordStrength::Medium => 2,
-            PasswordStrength::Strong => 3,
-        };
-        if segment <= active && active > 0 {
-            match s {
-                PasswordStrength::Weak => "strength-bar__segment strength-bar__segment--weak",
-                PasswordStrength::Medium => "strength-bar__segment strength-bar__segment--medium",
-                PasswordStrength::Strong => "strength-bar__segment strength-bar__segment--strong",
-                PasswordStrength::None => "strength-bar__segment",
-            }
-        } else {
-            "strength-bar__segment"
         }
     };
 
@@ -85,11 +56,6 @@ pub fn PasswordWithStrengthInput(
                         view! { <IconEyeOff/> }.into_view()
                     }}
                 </button>
-            </div>
-            <div class="strength-bar">
-                <div class=move || strength_class(1)></div>
-                <div class=move || strength_class(2)></div>
-                <div class=move || strength_class(3)></div>
             </div>
             {move || {
                 error.get().map(|msg| {

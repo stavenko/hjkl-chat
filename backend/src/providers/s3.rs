@@ -101,12 +101,17 @@ impl S3Provider {
     pub async fn object_exists(&self, key: &str) -> S3ProviderResult<bool> {
         match self.client.head_object().bucket(&self.bucket).key(key).send().await {
             Ok(_) => Ok(true),
-            Err(e) => {
-                let error_str = e.to_string();
-                if error_str.contains("404") || error_str.contains("NotFound") {
+            Err(sdk_err) => {
+                if sdk_err.as_service_error().map_or(false, |e| e.is_not_found()) {
                     Ok(false)
                 } else {
-                    Err(S3ProviderError::AwsSdk(error_str))
+                    let raw_status = sdk_err.raw_response()
+                        .map(|r| r.status().as_u16());
+                    if raw_status == Some(404) {
+                        Ok(false)
+                    } else {
+                        Err(S3ProviderError::AwsSdk(format!("{sdk_err:#}")))
+                    }
                 }
             }
         }

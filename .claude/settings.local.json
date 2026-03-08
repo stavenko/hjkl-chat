@@ -47,7 +47,21 @@
       "Bash(ls:*)",
       "Bash(git mv:*)",
       "Bash(docker compose:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "mcp__chrome-devtools__new_page",
+      "Bash(cargo run:*)",
+      "Bash(brew list:*)",
+      "Bash(docker exec:*)",
+      "Bash(mc alias set:*)",
+      "Bash(mc mb:*)",
+      "Bash(mc ls:*)",
+      "Bash(AWS_ACCESS_KEY_ID=minioadmin AWS_SECRET_ACCESS_KEY=minioadmin aws:*)",
+      "Bash(wasm-pack test:*)",
+      "Bash(cargo install:*)",
+      "Bash(/Applications/Google\\\\ Chrome.app/Contents/MacOS/Google\\\\ Chrome:*)",
+      "Bash(chromedriver:*)",
+      "Bash(npx @puppeteer/browsers install:*)",
+      "Bash(CHROMEDRIVER=/tmp/chromedriver-install/chromedriver/mac_arm-145.0.7632.160/chromedriver-mac-arm64/chromedriver wasm-pack test:*)"
     ]
   }
 }

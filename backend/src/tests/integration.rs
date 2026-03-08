@@ -6,6 +6,7 @@ mod isolation_tests;
 mod concurrent_tests;
 mod auth_tests;
 mod login_service_tests;
+mod registration_service_tests;
 
 #[actix_rt::test]
 async fn test_test_utils_generate_valid_values() {

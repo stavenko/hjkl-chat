@@ -1,18 +1,19 @@
-addr = "0.0.0.0"
-port = 5000
+addr = "127.0.0.1"
+port = 8080
+jwt_secret = "test-jwt-secret-key-for-manual-testing"
 
 [s3]
-bucket = "local-bucket"
+bucket = "test-bucket"
 region = "us-east-1"
 client_id = "minioadmin"
 client_secret = "minioadmin"
 host = "http://172.18.0.2:9000"
 
 [local_fs]
-root_path = "/app/local-fs"
+root_path = "/tmp/test-local-fs"
 
 [sqlite]
-s3_object_path = "app.db"
+s3_object_path = "test-manual.db"
 
 [smtp]
 host = "172.18.0.3"

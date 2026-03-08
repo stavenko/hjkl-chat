@@ -13,6 +13,9 @@ use config::Config;
 use providers::{LocalFileSystemProvider, S3Provider, SMTPProvider, SQLiteProvider};
 use std::path::PathBuf;
 use std::sync::Arc;
+use use_cases::registration::{
+    RegistrationCompleteUseCase, RegistrationUseCase, RegistrationVerifyUseCase,
+};
 
 #[derive(Parser, Debug)]
 #[command(name = "backend")]
@@ -48,15 +51,17 @@ async fn run_server(config_path: PathBuf) -> std::io::Result<()> {
     let config = Config::from_file(&config_path)
         .expect("Failed to load configuration file");
 
-    let s3_provider = S3Provider::new(
-        config.s3.bucket.clone(),
-        config.s3.region.clone(),
-        config.s3.client_id.clone(),
-        config.s3.client_secret.clone(),
-        config.s3.host.clone(),
-    )
-    .await
-    .expect("Failed to initialize S3 provider");
+    let s3_provider = Arc::new(
+        S3Provider::new(
+            config.s3.bucket.clone(),
+            config.s3.region.clone(),
+            config.s3.client_id.clone(),
+            config.s3.client_secret.clone(),
+            config.s3.host.clone(),
+        )
+        .await
+        .expect("Failed to initialize S3 provider"),
+    );
 
     let fs_provider = LocalFileSystemProvider::new(
         PathBuf::from(config.local_fs.root_path.clone())
@@ -64,30 +69,46 @@ async fn run_server(config_path: PathBuf) -> std::io::Result<()> {
     .expect("Failed to initialize local filesystem provider");
 
     let sqlite_provider = SQLiteProvider::new(
-        Arc::new(s3_provider),
+        s3_provider.clone(),
         Arc::new(fs_provider),
         &config.sqlite.s3_object_path,
     )
     .await
     .expect("Failed to initialize SQLite provider");
 
-    let _smtp_provider = SMTPProvider::new(
-        &config.smtp.host,
-        config.smtp.port,
-        config.smtp.use_tls,
-        &config.smtp.username,
-        &config.smtp.password,
-        &config.smtp.from_email,
-    )
-    .expect("Failed to initialize SMTP provider");
+    let smtp_provider = Arc::new(
+        SMTPProvider::new(
+            &config.smtp.host,
+            config.smtp.port,
+            config.smtp.use_tls,
+            &config.smtp.username,
+            &config.smtp.password,
+            &config.smtp.from_email,
+        )
+        .expect("Failed to initialize SMTP provider"),
+    );
 
     let jwt_secret = std::env::var("JWT_SECRET")
         .expect("JWT_SECRET environment variable must be set");
 
+    let sqlite_provider = Arc::new(sqlite_provider);
+    let registration_use_case = Arc::new(RegistrationUseCase::<SMTPProvider>::new(
+        sqlite_provider.clone(),
+        smtp_provider.clone(),
+    ));
+    let registration_verify_use_case = Arc::new(RegistrationVerifyUseCase::new(
+        sqlite_provider.clone(),
+    ));
+    let registration_complete_use_case =
+        Arc::new(RegistrationCompleteUseCase::new(sqlite_provider.clone(), jwt_secret.clone()));
+
     let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
-            .app_data(web::Data::new(Arc::new(sqlite_provider.clone())))
+            .app_data(web::Data::new(sqlite_provider.clone()))
             .app_data(web::Data::new(jwt_secret.clone()))
+            .app_data(web::Data::new(registration_use_case.clone()))
+            .app_data(web::Data::new(registration_verify_use_case.clone()))
+            .app_data(web::Data::new(registration_complete_use_case.clone()))
             .configure(api::configure_routes)
     })
     .bind((config.addr.as_str(), config.port))?

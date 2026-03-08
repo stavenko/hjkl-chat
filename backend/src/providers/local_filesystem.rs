@@ -12,6 +12,7 @@ pub enum LocalFileSystemProviderError {
 
 pub type LocalFileSystemProviderResult<T> = Result<T, LocalFileSystemProviderError>;
 
+#[derive(Clone)]
 pub struct LocalFileSystemProvider {
     root: PathBuf,
 }

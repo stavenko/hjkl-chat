@@ -1,6 +1,7 @@
 use lettre::message::{Mailbox, Message};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport};
+use async_trait::async_trait;
 
 #[derive(thiserror::Error, Debug)]
 pub enum SMTPProviderError {
@@ -14,10 +15,30 @@ pub enum SMTPProviderError {
 
 pub type SMTPProviderResult<T> = Result<T, SMTPProviderError>;
 
-#[allow(dead_code)]
+#[async_trait]
+pub trait SmtpClient: Send + Sync {
+    async fn send_email(&self, to: &str, subject: &str, body: &str) -> SMTPProviderResult<()>;
+}
+
 pub struct SMTPProvider {
     transporter: AsyncSmtpTransport<lettre::Tokio1Executor>,
     from_address: Mailbox,
+}
+
+#[async_trait]
+impl SmtpClient for SMTPProvider {
+    async fn send_email(&self, to: &str, subject: &str, body: &str) -> SMTPProviderResult<()> {
+        let to_address = to.parse::<Mailbox>()?;
+
+        let email = Message::builder()
+            .from(self.from_address.clone())
+            .to(to_address)
+            .subject(subject)
+            .body(body.to_string())?;
+
+        self.transporter.send(email).await.map_err(SMTPProviderError::SmtpTransport)?;
+        Ok(())
+    }
 }
 
 #[allow(dead_code)]

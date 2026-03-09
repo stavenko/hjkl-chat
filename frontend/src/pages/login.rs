@@ -50,10 +50,7 @@ pub fn LoginPage() -> impl IntoView {
         spawn_local(async move {
             match auth_service::login(&email_val, &password_val).await {
                 Ok(response) => {
-                    auth_service::store_tokens(
-                        &response.access_token,
-                        &response.refresh_token,
-                    );
+                    auth_service::store_token(&response.token);
                     navigate("/", NavigateOptions::default());
                 }
                 Err(msg) => {

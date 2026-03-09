@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_router::*;
 
 use crate::components::*;
 use crate::services::auth_service;
@@ -58,36 +59,43 @@ pub(crate) fn registration_init_signals() -> (
 }
 
 #[component]
-pub fn RegistrationPage() -> impl IntoView {
-    let (email, touched, submitted, email_error, disabled) = registration_init_signals();
-    let server_error = create_rw_signal(None::<String>);
+pub fn RegistrationInputEmailPage() -> impl IntoView {
+    let error = create_rw_signal(None::<String>);
+    let navigate = use_navigate();
+
+    let (email, touched, submitted, email_error, disabled) =
+        registration_init_signals();
+
+    let combined_error: Signal<Option<String>> = Signal::derive(move || {
+        email_error.get().or_else(|| error.get())
+    });
 
     let on_submit = move || {
         submitted.set(true);
+        error.set(None);
         let email_val = email.get_untracked();
-
+        let navigate = navigate.clone();
         spawn_local(async move {
             match auth_service::registration_init(&email_val).await {
-                Ok(_response) => {
-                    // TODO: navigate to verification step with session_id
-                    leptos::logging::log!("Registration init success: {:?}", _response);
+                Ok(response) => {
+                    let resend_at = js_sys::Date::parse(&response.resend_available_at) / 1000.0;
+                    let url = format!(
+                        "/register/verify?session_id={}&email={}&resend_at={}",
+                        response.session_id, email_val, resend_at
+                    );
+                    navigate(&url, NavigateOptions::default());
                 }
-                Err(msg) => {
-                    server_error.set(Some(msg));
-                }
+                Err(msg) => error.set(Some(msg)),
             }
         });
     };
-
-    let combined_error: Signal<Option<String>> = Signal::derive(move || {
-        email_error.get().or_else(|| server_error.get())
-    });
 
     view! {
         <div class="auth-page">
             <Logo/>
             <p class="auth-page__tagline">"Create your account"</p>
             <Surface>
+                <FormHeader text="Register"/>
                 <div on:input=move |_| { touched.set(true); }>
                     <TextInput
                         label="Email"
@@ -121,114 +129,7 @@ mod tests {
             .unwrap();
     }
 
-    #[wasm_bindgen_test]
-    fn disabled_when_email_empty() {
-        let runtime = create_runtime();
-        let (_email, _touched, _submitted, _email_error, disabled) =
-            registration_init_signals();
-
-        assert!(disabled.get_untracked(), "button must be disabled when email is empty");
-
-        runtime.dispose();
-    }
-
-    #[wasm_bindgen_test]
-    fn disabled_when_email_invalid() {
-        let runtime = create_runtime();
-        let (email, _touched, _submitted, _email_error, disabled) =
-            registration_init_signals();
-
-        email.set("not-an-email".into());
-
-        assert!(disabled.get_untracked(), "button must be disabled for invalid email");
-
-        runtime.dispose();
-    }
-
-    #[wasm_bindgen_test]
-    fn enabled_when_email_valid() {
-        let runtime = create_runtime();
-        let (email, _touched, _submitted, _email_error, disabled) =
-            registration_init_signals();
-
-        email.set("user@example.com".into());
-
-        assert!(!disabled.get_untracked(), "button must be enabled for valid email");
-
-        runtime.dispose();
-    }
-
-    #[wasm_bindgen_test]
-    fn disabled_after_submit() {
-        let runtime = create_runtime();
-        let (email, _touched, submitted, _email_error, disabled) =
-            registration_init_signals();
-
-        email.set("user@example.com".into());
-        assert!(!disabled.get_untracked());
-
-        submitted.set(true);
-        assert!(disabled.get_untracked(), "button must be disabled after submit");
-
-        runtime.dispose();
-    }
-
-    #[wasm_bindgen_test]
-    async fn reenabled_after_email_change() {
-        let runtime = create_runtime();
-        let (email, _touched, submitted, _email_error, disabled) =
-            registration_init_signals();
-
-        email.set("user@example.com".into());
-        submitted.set(true);
-        assert!(disabled.get_untracked());
-
-        email.set("other@example.com".into());
-        tick().await;
-        assert!(!disabled.get_untracked(), "button must re-enable after email change");
-
-        runtime.dispose();
-    }
-
-    #[wasm_bindgen_test]
-    fn no_error_when_untouched() {
-        let runtime = create_runtime();
-        let (email, _touched, _submitted, email_error, _disabled) =
-            registration_init_signals();
-
-        email.set("bad".into());
-        assert!(email_error.get_untracked().is_none(), "no error before user touches input");
-
-        runtime.dispose();
-    }
-
-    #[wasm_bindgen_test]
-    fn error_shown_when_touched_and_invalid() {
-        let runtime = create_runtime();
-        let (email, touched, _submitted, email_error, _disabled) =
-            registration_init_signals();
-
-        email.set("bad".into());
-        touched.set(true);
-        assert!(email_error.get_untracked().is_some(), "error shown for invalid email after touch");
-
-        runtime.dispose();
-    }
-
-    #[wasm_bindgen_test]
-    fn no_error_when_touched_and_valid() {
-        let runtime = create_runtime();
-        let (email, touched, _submitted, email_error, _disabled) =
-            registration_init_signals();
-
-        email.set("user@example.com".into());
-        touched.set(true);
-        assert!(email_error.get_untracked().is_none(), "no error for valid email");
-
-        runtime.dispose();
-    }
-
-    // -- is_valid_email tests --
+    // --- is_valid_email ---
 
     #[wasm_bindgen_test]
     fn valid_email_accepted() {
@@ -259,5 +160,94 @@ mod tests {
         assert!(!is_valid_email("user@"));
         assert!(!is_valid_email("user@.com"));
         assert!(!is_valid_email("user@example."));
+    }
+
+    // --- registration_init_signals ---
+
+    #[wasm_bindgen_test]
+    fn disabled_when_email_empty() {
+        let runtime = create_runtime();
+        let (_email, _touched, _submitted, _email_error, disabled) =
+            registration_init_signals();
+        assert!(disabled.get_untracked());
+        runtime.dispose();
+    }
+
+    #[wasm_bindgen_test]
+    fn disabled_when_email_invalid() {
+        let runtime = create_runtime();
+        let (email, _touched, _submitted, _email_error, disabled) =
+            registration_init_signals();
+        email.set("not-an-email".into());
+        assert!(disabled.get_untracked());
+        runtime.dispose();
+    }
+
+    #[wasm_bindgen_test]
+    fn enabled_when_email_valid() {
+        let runtime = create_runtime();
+        let (email, _touched, _submitted, _email_error, disabled) =
+            registration_init_signals();
+        email.set("user@example.com".into());
+        assert!(!disabled.get_untracked());
+        runtime.dispose();
+    }
+
+    #[wasm_bindgen_test]
+    fn disabled_after_submit() {
+        let runtime = create_runtime();
+        let (email, _touched, submitted, _email_error, disabled) =
+            registration_init_signals();
+        email.set("user@example.com".into());
+        submitted.set(true);
+        assert!(disabled.get_untracked());
+        runtime.dispose();
+    }
+
+    #[wasm_bindgen_test]
+    async fn reenabled_after_email_change() {
+        let runtime = create_runtime();
+        let (email, _touched, submitted, _email_error, disabled) =
+            registration_init_signals();
+        email.set("user@example.com".into());
+        submitted.set(true);
+        assert!(disabled.get_untracked());
+
+        email.set("other@example.com".into());
+        tick().await;
+        assert!(!disabled.get_untracked());
+        runtime.dispose();
+    }
+
+    #[wasm_bindgen_test]
+    fn no_error_when_untouched() {
+        let runtime = create_runtime();
+        let (email, _touched, _submitted, email_error, _disabled) =
+            registration_init_signals();
+        email.set("bad".into());
+        assert!(email_error.get_untracked().is_none());
+        runtime.dispose();
+    }
+
+    #[wasm_bindgen_test]
+    fn error_shown_when_touched_and_invalid() {
+        let runtime = create_runtime();
+        let (email, touched, _submitted, email_error, _disabled) =
+            registration_init_signals();
+        email.set("bad".into());
+        touched.set(true);
+        assert!(email_error.get_untracked().is_some());
+        runtime.dispose();
+    }
+
+    #[wasm_bindgen_test]
+    fn no_error_when_touched_and_valid() {
+        let runtime = create_runtime();
+        let (email, touched, _submitted, email_error, _disabled) =
+            registration_init_signals();
+        email.set("user@example.com".into());
+        touched.set(true);
+        assert!(email_error.get_untracked().is_none());
+        runtime.dispose();
     }
 }

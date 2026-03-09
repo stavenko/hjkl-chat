@@ -1,4 +1,4 @@
-use crate::models::registration::RegistrationSession;
+use crate::models::password_restore::PasswordRestoreSession;
 use crate::providers::sqlite::SQLiteProvider;
 use chrono::Utc;
 use std::sync::Arc;
@@ -6,8 +6,8 @@ use uuid::Uuid;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Invalid verification code")]
-    InvalidCode,
+    #[error("Password mismatch")]
+    PasswordMismatch,
     #[error("Session not found")]
     SessionNotFound,
     #[error("Session has expired")]
@@ -21,8 +21,8 @@ pub enum Error {
 impl From<Error> for crate::api::Error {
     fn from(value: Error) -> Self {
         match value {
-            Error::InvalidCode => crate::api::Error {
-                code: "InvalidCode".to_string(),
+            Error::PasswordMismatch => crate::api::Error {
+                code: "PasswordMismatch".to_string(),
                 message: value.to_string(),
             },
             Error::SessionNotFound => crate::api::Error {
@@ -43,24 +43,28 @@ impl From<Error> for crate::api::Error {
 
 pub struct Input {
     pub session_id: Uuid,
-    pub code: String,
+    pub password: String,
+    pub password_confirm: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Output {
-    pub session_id: String,
-    pub expires_at: String,
+    pub message: String,
 }
 
 pub async fn command(
     sqlite: Arc<SQLiteProvider>,
     input: Input,
 ) -> Result<Output, Error> {
+    if input.password != input.password_confirm {
+        return Err(Error::PasswordMismatch);
+    }
+
     let session = sqlite
         .query_one_with_params(
-            "SELECT * FROM registration_sessions WHERE id = ?",
+            "SELECT * FROM password_restore_sessions WHERE id = ?",
             rusqlite::params![input.session_id],
-            RegistrationSession::from_row,
+            PasswordRestoreSession::from_row,
         )?
         .ok_or(Error::SessionNotFound)?;
 
@@ -69,12 +73,24 @@ pub async fn command(
         return Err(Error::ExpiredSession);
     }
 
-    if session.verification_code != input.code {
-        return Err(Error::InvalidCode);
-    }
+    let password_hash = bcrypt::hash(&input.password, bcrypt::DEFAULT_COST)
+        .map_err(|e| Error::DatabaseError(rusqlite::Error::FromSqlConversionFailure(
+            0,
+            rusqlite::types::Type::Text,
+            Box::new(e),
+        )))?;
+
+    sqlite.execute_with_params(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        rusqlite::params![password_hash, session.user_id],
+    )?;
+
+    sqlite.execute_with_params(
+        "DELETE FROM password_restore_sessions WHERE id = ?",
+        rusqlite::params![input.session_id],
+    )?;
 
     Ok(Output {
-        session_id: session.id.to_string(),
-        expires_at: session.expires_at.to_rfc3339(),
+        message: "Password changed successfully".to_string(),
     })
 }

@@ -5,7 +5,6 @@ use chrono::Utc;
 use crate::models::session::Session;
 use crate::tests::test_app::{create_app_with_fixtures, AppDetails};
 use crate::tests::utils::unique_email;
-use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -38,8 +37,14 @@ async fn create_app_with_user() -> anyhow::Result<(
             let created_at = Utc::now();
             det.sqlite
                 .execute_with_params(
-                    "INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                    rusqlite::params![&user_id, &email, &password_hash, created_at],
+                    "INSERT INTO users (id, password_hash, created_at) VALUES (?, ?, ?)",
+                    rusqlite::params![&user_id, &password_hash, created_at],
+                )
+                .unwrap();
+            det.sqlite
+                .execute_with_params(
+                    "INSERT INTO emails (email, user_id, is_verified) VALUES (?, ?, 1)",
+                    rusqlite::params![&email, &user_id],
                 )
                 .unwrap();
             user_id
@@ -70,7 +75,7 @@ fn get_session_from_db(sqlite: &crate::providers::sqlite::SQLiteProvider, user_i
 }
 
 #[actix_rt::test]
-async fn test_login_successful_returns_valid_tokens() {
+async fn test_login_successful_returns_valid_token() {
     let (_details, app, user) = create_app_with_user().await.unwrap();
 
     let req = TestRequest::post()
@@ -84,12 +89,11 @@ async fn test_login_successful_returns_valid_tokens() {
     let body: Value = actix_web::test::read_body_json(resp).await;
     assert_eq!(body["status"], "ok");
     assert_eq!(body["user"]["email"], user.email);
-    assert!(body["access_token"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
-    assert!(body["refresh_token"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
+    assert!(body["token"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
 }
 
 #[actix_rt::test]
-async fn test_tokens_are_valid_jwt_format() {
+async fn test_token_is_long_random_string() {
     let (_details, app, user) = create_app_with_user().await.unwrap();
 
     let req = TestRequest::post()
@@ -100,57 +104,9 @@ async fn test_tokens_are_valid_jwt_format() {
     let resp = app.call(req).await.unwrap();
     let body: Value = actix_web::test::read_body_json(resp).await;
 
-    let access_token = body["access_token"].as_str().unwrap();
-    let refresh_token = body["refresh_token"].as_str().unwrap();
-
-    let access_parts: Vec<&str> = access_token.split('.').collect();
-    let refresh_parts: Vec<&str> = refresh_token.split('.').collect();
-
-    assert_eq!(access_parts.len(), 3, "Access token should have 3 parts separated by dots");
-    assert_eq!(refresh_parts.len(), 3, "Refresh token should have 3 parts separated by dots");
-
-    assert!(!access_parts[0].is_empty(), "JWT header should not be empty");
-    assert!(!access_parts[1].is_empty(), "JWT payload should not be empty");
-    assert!(!access_parts[2].is_empty(), "JWT signature should not be empty");
-}
-
-#[actix_rt::test]
-async fn test_tokens_can_be_decoded_with_expected_claims() {
-    let (_details, app, user) = create_app_with_user().await.unwrap();
-
-    let req = TestRequest::post()
-        .uri("/api/auth/login")
-        .set_json(json!({"email": user.email, "password": user.password}))
-        .to_request();
-
-    let resp = app.call(req).await.unwrap();
-    let body: Value = actix_web::test::read_body_json(resp).await;
-
-    let access_token = body["access_token"].as_str().unwrap();
-    let refresh_token = body["refresh_token"].as_str().unwrap();
-
-    let jwt_secret = "test-secret-key-for-jwt-signing";
-    let validation = Validation::new(jsonwebtoken::Algorithm::HS256);
-    let decoding_key = DecodingKey::from_secret(jwt_secret.as_bytes());
-
-    let access_token_data: jsonwebtoken::TokenData<Value> =
-        decode(access_token, &decoding_key, &validation).unwrap();
-    let refresh_token_data: jsonwebtoken::TokenData<Value> =
-        decode(refresh_token, &decoding_key, &validation).unwrap();
-
-    let now = Utc::now().timestamp();
-    let access_exp = access_token_data.claims.get("exp").unwrap().as_u64().unwrap() as i64;
-    let refresh_exp = refresh_token_data.claims.get("exp").unwrap().as_u64().unwrap() as i64;
-
-    assert!(access_exp > now, "Access token should not be expired yet");
-    assert!(refresh_exp > now, "Refresh token should not be expired yet");
-    assert!(refresh_exp > access_exp, "Refresh token should expire after access token");
-
-    let access_hours = (access_exp - now) / 3600;
-    let refresh_days = (refresh_exp - now) / 86400;
-
-    assert!(access_hours <= 24, "Access token should be short-lived (less than 24 hours)");
-    assert!(refresh_days >= 1, "Refresh token should be long-lived (at least 1 day)");
+    let token = body["token"].as_str().unwrap();
+    assert!(token.len() >= 64, "Token should be at least 64 characters long");
+    assert!(token.chars().all(|c| c.is_ascii_hexdigit()), "Token should be hex-encoded");
 }
 
 #[actix_rt::test]
@@ -173,7 +129,7 @@ async fn test_session_user_id_matches_logged_in_user() {
 }
 
 #[actix_rt::test]
-async fn test_session_tokens_match_response() {
+async fn test_session_token_matches_response() {
     let (details, app, user) = create_app_with_user().await.unwrap();
 
     let req = TestRequest::post()
@@ -187,14 +143,9 @@ async fn test_session_tokens_match_response() {
     let session = get_session_from_db(&details.sqlite, user.user_id).unwrap();
 
     assert_eq!(
-        session.access_token,
-        body["access_token"].as_str().unwrap(),
-        "Session access_token should match response"
-    );
-    assert_eq!(
-        session.refresh_token,
-        body["refresh_token"].as_str().unwrap(),
-        "Session refresh_token should match response"
+        session.token,
+        body["token"].as_str().unwrap(),
+        "Session token should match response"
     );
 }
 
@@ -248,8 +199,15 @@ async fn test_database_query_failure_handling() {
     details
         .sqlite
         .execute_with_params(
-            "INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-            rusqlite::params![&user_id, &email, &password_hash, Utc::now()],
+            "INSERT INTO users (id, password_hash, created_at) VALUES (?, ?, ?)",
+            rusqlite::params![&user_id, &password_hash, Utc::now()],
+        )
+        .unwrap();
+    details
+        .sqlite
+        .execute_with_params(
+            "INSERT INTO emails (email, user_id, is_verified) VALUES (?, ?, 1)",
+            rusqlite::params![&email, &user_id],
         )
         .unwrap();
 
@@ -260,23 +218,6 @@ async fn test_database_query_failure_handling() {
 
     let resp = app.call(req).await.unwrap();
     assert_eq!(resp.status(), 500, "Login should fail when sessions table doesn't exist");
-}
-
-#[actix_rt::test]
-async fn test_jwt_signing_error_handling() {
-    let (_details, app, user) = create_app_with_user().await.unwrap();
-
-    let req = TestRequest::post()
-        .uri("/api/auth/login")
-        .set_json(json!({"email": user.email, "password": user.password}))
-        .to_request();
-
-    let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 200);
-
-    let body: Value = actix_web::test::read_body_json(resp).await;
-    assert!(body["access_token"].as_str().map(|s| !s.is_empty()).unwrap_or(false), "Access token should not be empty");
-    assert!(body["refresh_token"].as_str().map(|s| !s.is_empty()).unwrap_or(false), "Refresh token should not be empty");
 }
 
 #[actix_rt::test]
@@ -301,14 +242,26 @@ async fn test_multiple_users_isolated() {
 
             det.sqlite
                 .execute_with_params(
-                    "INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                    rusqlite::params![&uid1, &e1, &hash1, now],
+                    "INSERT INTO users (id, password_hash, created_at) VALUES (?, ?, ?)",
+                    rusqlite::params![&uid1, &hash1, now],
                 )
                 .unwrap();
             det.sqlite
                 .execute_with_params(
-                    "INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                    rusqlite::params![&uid2, &e2, &hash2, now],
+                    "INSERT INTO emails (email, user_id, is_verified) VALUES (?, ?, 1)",
+                    rusqlite::params![&e1, &uid1],
+                )
+                .unwrap();
+            det.sqlite
+                .execute_with_params(
+                    "INSERT INTO users (id, password_hash, created_at) VALUES (?, ?, ?)",
+                    rusqlite::params![&uid2, &hash2, now],
+                )
+                .unwrap();
+            det.sqlite
+                .execute_with_params(
+                    "INSERT INTO emails (email, user_id, is_verified) VALUES (?, ?, 1)",
+                    rusqlite::params![&e2, &uid2],
                 )
                 .unwrap();
 
@@ -341,5 +294,5 @@ async fn test_multiple_users_isolated() {
 
     assert_eq!(session1.user_id, user_id1);
     assert_eq!(session2.user_id, user_id2);
-    assert_ne!(session1.access_token, session2.access_token);
+    assert_ne!(session1.token, session2.token);
 }

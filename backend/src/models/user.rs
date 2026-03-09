@@ -5,7 +5,8 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: Uuid,
-    pub email: String,
+    pub nickname: Option<String>,
+    pub name: Option<String>,
     pub password_hash: String,
     pub created_at: DateTime<Utc>,
 }
@@ -14,7 +15,8 @@ impl User {
     pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
         Ok(User {
             id: row.get("id")?,
-            email: row.get("email")?,
+            nickname: row.get("nickname")?,
+            name: row.get("name")?,
             password_hash: row.get("password_hash")?,
             created_at: row.get("created_at")?,
         })

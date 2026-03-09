@@ -13,8 +13,6 @@ use config::Config;
 use providers::{LocalFileSystemProvider, S3Provider, SMTPProvider, SQLiteProvider};
 use std::path::PathBuf;
 use std::sync::Arc;
-use use_cases::registration::RegistrationUseCase;
-use use_cases::{RegistrationCompleteUseCase, RegistrationVerifyUseCase};
 
 #[derive(Parser, Debug)]
 #[command(name = "backend")]
@@ -87,27 +85,12 @@ async fn run_server(config_path: PathBuf) -> std::io::Result<()> {
         .expect("Failed to initialize SMTP provider"),
     );
 
-    let jwt_secret = std::env::var("JWT_SECRET")
-        .expect("JWT_SECRET environment variable must be set");
-
     let sqlite_provider = Arc::new(sqlite_provider);
-    let registration_use_case = Arc::new(RegistrationUseCase::<SMTPProvider>::new(
-        sqlite_provider.clone(),
-        smtp_provider.clone(),
-    ));
-    let registration_verify_use_case = Arc::new(RegistrationVerifyUseCase::new(
-        sqlite_provider.clone(),
-    ));
-    let registration_complete_use_case =
-        Arc::new(RegistrationCompleteUseCase::new(sqlite_provider.clone(), jwt_secret.clone()));
 
     let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .app_data(web::Data::new(sqlite_provider.clone()))
-            .app_data(web::Data::new(jwt_secret.clone()))
-            .app_data(web::Data::new(registration_use_case.clone()))
-            .app_data(web::Data::new(registration_verify_use_case.clone()))
-            .app_data(web::Data::new(registration_complete_use_case.clone()))
+            .app_data(web::Data::new(smtp_provider.clone()))
             .configure(api::configure_routes)
     })
     .bind((config.addr.as_str(), config.port))?

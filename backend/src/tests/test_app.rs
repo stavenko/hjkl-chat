@@ -3,16 +3,12 @@ use crate::config::Config;
 use crate::providers::smtp::SMTPProvider;
 use crate::providers::sqlite::SQLiteProvider;
 use crate::providers::{LocalFileSystemProvider, S3Provider};
-use crate::use_cases::registration::RegistrationUseCase;
-use crate::use_cases::{RegistrationCompleteUseCase, RegistrationVerifyUseCase};
 use actix_web::{web, App};
 use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
 static CONFIG_PATH_ENV_VAR: &str = "HJKL_CHAT_BACKEND_CONFIG_PATH";
-static TEST_JWT_SECRET: &str = "test-secret-key-for-jwt-signing";
-
 #[allow(dead_code)]
 pub struct AppDetails {
     pub sqlite: Arc<SQLiteProvider>,
@@ -88,19 +84,6 @@ where
         .expect("Failed to initialize SMTP provider"),
     );
 
-    let jwt_secret = TEST_JWT_SECRET.to_string();
-
-    let registration_use_case = Arc::new(RegistrationUseCase::<SMTPProvider>::new(
-        sqlite_provider.clone(),
-        smtp_provider.clone(),
-    ));
-    let registration_verify_use_case =
-        Arc::new(RegistrationVerifyUseCase::new(sqlite_provider.clone()));
-    let registration_complete_use_case = Arc::new(RegistrationCompleteUseCase::new(
-        sqlite_provider.clone(),
-        jwt_secret.clone(),
-    ));
-
     let fixture_details = AppDetails {
         sqlite: sqlite_provider.clone(),
         config: config.clone(),
@@ -116,10 +99,7 @@ where
     let app = actix_test::init_service(
         App::new()
             .app_data(web::Data::new(sqlite_provider.clone()))
-            .app_data(web::Data::new(jwt_secret.clone()))
-            .app_data(web::Data::new(registration_use_case.clone()))
-            .app_data(web::Data::new(registration_verify_use_case.clone()))
-            .app_data(web::Data::new(registration_complete_use_case.clone()))
+            .app_data(web::Data::new(smtp_provider.clone()))
             .configure(api::configure_routes),
     )
     .await;

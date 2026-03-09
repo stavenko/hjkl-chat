@@ -1,8 +1,7 @@
-pub mod auth;
-pub mod registration;
+pub mod login;
 pub mod registration_complete;
+pub mod registration_init;
 pub mod registration_verify;
-
-pub use auth::login;
-pub use registration_complete::RegistrationCompleteUseCase;
-pub use registration_verify::RegistrationVerifyUseCase;
+pub mod restore_complete;
+pub mod restore_init;
+pub mod restore_verify;

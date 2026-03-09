@@ -1,59 +1,37 @@
-use actix_web::{web, HttpResponse, Responder};
-use serde::Serialize;
+use actix_web::{web, Responder};
+use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::models::registration::{
-    RegistrationVerifyRequest, RegistrationVerifyError,
-};
-use crate::use_cases::registration_verify::RegistrationVerifyUseCase;
+use crate::api::ApiResponse;
+use crate::providers::sqlite::SQLiteProvider;
+use crate::use_cases::registration_verify;
 
-#[derive(Debug, Clone, Serialize)]
-pub struct RegistrationVerifyApiResponse {
-    pub status: String,
+#[derive(Debug, Clone, Deserialize)]
+pub struct RegistrationVerifyRequest {
     pub session_id: String,
-    pub expires_at: String,
+    pub code: String,
 }
 
-pub async fn registration_verify(
-    use_case: web::Data<Arc<RegistrationVerifyUseCase>>,
+pub async fn handler(
+    sqlite: web::Data<Arc<SQLiteProvider>>,
     body: web::Json<RegistrationVerifyRequest>,
 ) -> impl Responder {
     let session_id = match uuid::Uuid::parse_str(&body.session_id) {
         Ok(id) => id,
         Err(_) => {
-            return HttpResponse::BadRequest().json(serde_json::json!({
-                "status": "error",
-                "message": "Invalid session_id format"
-            }));
+            return ApiResponse::Err(crate::api::Error {
+                code: "InvalidSessionId".to_string(),
+                message: "Invalid session_id format".to_string(),
+            });
         }
     };
 
-    match use_case.verify_registration(session_id, &body.code).await {
-        Ok(response) => HttpResponse::Ok().json(RegistrationVerifyApiResponse {
-            status: response.status,
-            session_id: response.session_id,
-            expires_at: response.expires_at,
-        }),
-        Err(e) => {
-            tracing::error!("Registration verify error: {}", e);
-            match e {
-                RegistrationVerifyError::InvalidCode => HttpResponse::BadRequest().json(serde_json::json!({
-                    "status": "error",
-                    "message": "Invalid verification code"
-                })),
-                RegistrationVerifyError::ExpiredSession => HttpResponse::BadRequest().json(serde_json::json!({
-                    "status": "error",
-                    "message": "Session has expired"
-                })),
-                RegistrationVerifyError::SessionNotFound => HttpResponse::NotFound().json(serde_json::json!({
-                    "status": "error",
-                    "message": "Session not found"
-                })),
-                _ => HttpResponse::InternalServerError().json(serde_json::json!({
-                    "status": "error",
-                    "message": e.to_string()
-                })),
-            }
-        }
-    }
+    let input = registration_verify::Input {
+        session_id,
+        code: body.code.clone(),
+    };
+
+    registration_verify::command(sqlite.get_ref().clone(), input)
+        .await
+        .into()
 }

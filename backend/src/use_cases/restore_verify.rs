@@ -1,4 +1,4 @@
-use crate::models::registration::RegistrationSession;
+use crate::models::password_restore::PasswordRestoreSession;
 use crate::providers::sqlite::SQLiteProvider;
 use chrono::Utc;
 use std::sync::Arc;
@@ -42,14 +42,13 @@ impl From<Error> for crate::api::Error {
 }
 
 pub struct Input {
-    pub session_id: Uuid,
+    pub email: String,
     pub code: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Output {
-    pub session_id: String,
-    pub expires_at: String,
+    pub session_id: Uuid,
 }
 
 pub async fn command(
@@ -57,10 +56,10 @@ pub async fn command(
     input: Input,
 ) -> Result<Output, Error> {
     let session = sqlite
-        .query_one_with_params(
-            "SELECT * FROM registration_sessions WHERE id = ?",
-            rusqlite::params![input.session_id],
-            RegistrationSession::from_row,
+        .query_one(
+            "SELECT * FROM password_restore_sessions WHERE email = ?",
+            &[input.email.as_str().into()],
+            PasswordRestoreSession::from_row,
         )?
         .ok_or(Error::SessionNotFound)?;
 
@@ -74,7 +73,6 @@ pub async fn command(
     }
 
     Ok(Output {
-        session_id: session.id.to_string(),
-        expires_at: session.expires_at.to_rfc3339(),
+        session_id: session.id,
     })
 }

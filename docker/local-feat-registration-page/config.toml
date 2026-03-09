@@ -1,0 +1,23 @@
+addr = "127.0.0.1"
+port = 5003
+
+[s3]
+bucket = "local-bucket"
+region = "us-east-1"
+client_id = "minioadmin"
+client_secret = "minioadmin"
+host = "http://localhost:9004"
+
+[local_fs]
+root_path = "/tmp/hjkl-local-fs-feat-registration-page"
+
+[sqlite]
+s3_object_path = "app.db"
+
+[smtp]
+host = "localhost"
+port = 1028
+use_tls = false
+username = ""
+password = ""
+from_email = "noreply@example.com"

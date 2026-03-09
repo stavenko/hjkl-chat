@@ -15,7 +15,8 @@ pub fn App() -> impl IntoView {
                 {show_theme_toggle.then(|| view! { <ThemeToggle/> })}
                 <Routes>
                     <Route path="/login" view=LoginPage/>
-                    <Route path="/register" view=PlaceholderPage/>
+                    <Route path="/register" view=RegistrationPage/>
+                    <Route path="/register/success" view=RegistrationSuccessPage/>
                     <Route path="/password/restore" view=PlaceholderPage/>
                     <Route path="/" view=HomePage/>
                 </Routes>

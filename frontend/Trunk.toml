@@ -1,13 +1,13 @@
 [serve]
-port = 8083
+port = 8080
 
 [watch]
 ignore = ["dist"]
 
 [[proxy]]
 rewrite = "/api/"
-backend = "http://localhost:5003/api/"
+backend = "http://127.0.0.1:3001/api/"
 
 [[proxy]]
 rewrite = "/config.json"
-backend = "http://localhost:8093/config.json"
+backend = "http://localhost:8090/config.json"

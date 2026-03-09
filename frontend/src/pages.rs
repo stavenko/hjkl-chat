@@ -1,5 +1,7 @@
+pub mod change_password;
 mod helpers;
 pub mod login;
+pub mod profile;
 pub mod registration_input_email;
 pub mod registration_set_password;
 pub mod registration_success;

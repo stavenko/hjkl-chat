@@ -306,3 +306,21 @@ body {
   color: #666666;
   text-align: center;
 }
+
+/* ===== Profile Page ===== */
+.profile-emails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.profile-email {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.profile-success {
+  font-size: var(--font-size-sm);
+  color: var(--color-success);
+  text-align: center;
+}

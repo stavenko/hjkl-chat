@@ -1,7 +1,10 @@
+pub mod auth_change_password;
 pub mod auth_login;
+pub mod auth_me;
 pub mod auth_registration_complete;
 pub mod auth_registration_init;
 pub mod auth_registration_verify;
 pub mod auth_restore_complete;
 pub mod auth_restore_init;
 pub mod auth_restore_verify;
+pub mod auth_update_profile;

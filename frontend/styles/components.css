@@ -251,6 +251,11 @@ body {
   text-decoration: underline;
 }
 
+.auth-link--inline {
+  font-size: inherit;
+  text-align: inherit;
+}
+
 /* ===== Surface ===== */
 .surface {
   display: flex;

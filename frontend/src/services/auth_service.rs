@@ -110,6 +110,76 @@ pub fn store_tokens(access_token: &str, refresh_token: &str) {
         .expect("failed to store refresh_token");
 }
 
+#[derive(Serialize)]
+struct RegistrationInitRequest {
+    email: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct RegistrationInitResponse {
+    pub status: String,
+    pub message: String,
+    pub session_id: String,
+    pub resend_available_at: String,
+}
+
+pub async fn registration_init(email: &str) -> Result<RegistrationInitResponse, String> {
+    let base_url = get_api_base_url();
+    let url = format!("{}/api/auth/registration/init", base_url);
+
+    let body = serde_json::to_string(&RegistrationInitRequest {
+        email: email.to_string(),
+    })
+    .map_err(|e| format!("Failed to serialize request: {}", e))?;
+
+    let opts = RequestInit::new();
+    opts.set_method("POST");
+    opts.set_mode(RequestMode::SameOrigin);
+    opts.set_body(&wasm_bindgen::JsValue::from_str(&body));
+
+    let headers =
+        Headers::new().map_err(|e| format!("Failed to create headers: {:?}", e))?;
+    headers
+        .set("Content-Type", "application/json")
+        .map_err(|e| format!("Failed to set header: {:?}", e))?;
+    opts.set_headers(&headers);
+
+    let window = web_sys::window().expect("no window");
+    let resp_value =
+        JsFuture::from(window.fetch_with_str_and_init(&url, &opts))
+            .await
+            .map_err(|e| format!("Network error: {:?}", e))?;
+
+    let resp: web_sys::Response = resp_value
+        .dyn_into()
+        .map_err(|e| format!("Failed to convert response: {:?}", e))?;
+
+    let text = JsFuture::from(
+        resp.text()
+            .map_err(|e| format!("Failed to read body: {:?}", e))?,
+    )
+    .await
+    .map_err(|e| format!("Failed to await body: {:?}", e))?;
+
+    let text_str = text
+        .as_string()
+        .ok_or_else(|| "Response body is not a string".to_string())?;
+
+    if resp.ok() {
+        serde_json::from_str::<RegistrationInitResponse>(&text_str)
+            .map_err(|e| format!("Failed to parse response: {}", e))
+    } else {
+        #[derive(Deserialize)]
+        struct ErrorResponse {
+            message: String,
+        }
+        match serde_json::from_str::<ErrorResponse>(&text_str) {
+            Ok(err) => Err(err.message),
+            Err(_) => Err(format!("Request failed with status {}", resp.status())),
+        }
+    }
+}
+
 pub fn clear_tokens() {
     let window = web_sys::window().expect("no window");
     let storage = window

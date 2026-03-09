@@ -29,6 +29,13 @@ pub fn LoginPage() -> impl IntoView {
     let (email, password, submitted, disabled) = login_disabled_signals();
     let error = create_rw_signal(None::<String>);
 
+    let query = use_query_map();
+    if let Some(prefill) = query.with_untracked(|q| q.get("email").cloned()) {
+        if !prefill.is_empty() {
+            email.set(prefill);
+        }
+    }
+
     let error_signal: Signal<Option<String>> = Signal::derive(move || error.get());
     let no_error: Signal<Option<String>> = Signal::derive(|| None);
 
@@ -180,6 +187,21 @@ mod tests {
         password.set("new_secret".into());
         tick().await;
         assert!(!disabled.get_untracked(), "button must re-enable after password change");
+
+        runtime.dispose();
+    }
+
+    #[wasm_bindgen_test]
+    fn prefilled_email_enables_button_with_password() {
+        let runtime = create_runtime();
+        let (email, password, _submitted, disabled) = login_disabled_signals();
+
+        // Simulate query-param prefill
+        email.set("prefilled@example.com".into());
+        assert!(disabled.get_untracked(), "still disabled without password");
+
+        password.set("secret".into());
+        assert!(!disabled.get_untracked(), "enabled once password added to prefilled email");
 
         runtime.dispose();
     }

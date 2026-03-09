@@ -48,14 +48,12 @@ impl SQLiteProvider {
             let data = s3_provider.get_object(s3_object_path).await?;
             fs_provider.save(data)?
         } else {
-            let path = fs_provider.get_path(s3_object_path)?;
-            let conn = Connection::open(&path)?;
-            run_migrations(&conn)?;
-            path
+            fs_provider.get_path(s3_object_path)?
         };
 
         let conn = Connection::open(&db_path)?;
         conn.pragma_update(None, "journal_mode", "WAL")?;
+        run_migrations(&conn)?;
 
         Ok(SQLiteProvider {
             conn: Arc::new(Mutex::new(conn)),
@@ -78,12 +76,14 @@ impl SQLiteProvider {
         sql: &str,
         params: &[rusqlite::types::ValueRef<'_>],
     ) -> SQLiteProviderResult<usize> {
-        let conn = self.get_connection()?;
-        let value_params: Vec<rusqlite::types::Value> = params
-            .iter()
-            .map(|v| rusqlite::types::Value::from(*v))
-            .collect();
-        let result = conn.execute(sql, rusqlite::params_from_iter(value_params))?;
+        let result = {
+            let conn = self.get_connection()?;
+            let value_params: Vec<rusqlite::types::Value> = params
+                .iter()
+                .map(|v| rusqlite::types::Value::from(*v))
+                .collect();
+            conn.execute(sql, rusqlite::params_from_iter(value_params))?
+        };
         self.dump_to_s3();
         Ok(result)
     }
@@ -92,8 +92,10 @@ impl SQLiteProvider {
     where
         P: rusqlite::Params,
     {
-        let conn = self.get_connection()?;
-        let result = conn.execute(sql, params)?;
+        let result = {
+            let conn = self.get_connection()?;
+            conn.execute(sql, params)?
+        };
         self.dump_to_s3();
         Ok(result)
     }
@@ -114,6 +116,26 @@ impl SQLiteProvider {
             .map(|v| rusqlite::types::Value::from(*v))
             .collect();
         let mut rows = stmt.query(rusqlite::params_from_iter(value_params))?;
+        if let Some(row) = rows.next()? {
+            Ok(Some(f(row)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn query_one_with_params<T, F, P>(
+        &self,
+        sql: &str,
+        params: P,
+        mut f: F,
+    ) -> SQLiteProviderResult<Option<T>>
+    where
+        F: FnMut(&rusqlite::Row) -> rusqlite::Result<T>,
+        P: rusqlite::Params,
+    {
+        let conn = self.get_connection()?;
+        let mut stmt = conn.prepare(sql)?;
+        let mut rows = stmt.query(params)?;
         if let Some(row) = rows.next()? {
             Ok(Some(f(row)?))
         } else {
@@ -146,6 +168,12 @@ impl SQLiteProvider {
     }
 
     pub fn dump_to_s3(&self) {
+        if let Ok(conn) = self.get_connection() {
+            if let Err(e) = conn.pragma_update(None, "wal_checkpoint", "TRUNCATE") {
+                eprintln!("Failed to checkpoint WAL: {}", e);
+            }
+        }
+
         let db_path = self.db_path.clone();
         let s3_provider = self.s3_provider.clone();
         let fs_provider = self.fs_provider.clone();
@@ -169,22 +197,85 @@ impl SQLiteProvider {
 }
 
 fn run_migrations(conn: &Connection) -> rusqlite::Result<()> {
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS users (
-            id UUID PRIMARY KEY,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TIMESTAMP NOT NULL
-        )",
-        [],
-    )?;
+    // Check if users table exists with old schema (has email column)
+    let users_table_exists = conn
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")?
+        .exists([])?;
 
+    let needs_migration = if users_table_exists {
+        let mut stmt = conn.prepare("PRAGMA table_info(users)")?;
+        let columns: Vec<String> = stmt
+            .query_map([], |row| row.get::<_, String>(1))?
+            .filter_map(|r| r.ok())
+            .collect();
+        columns.contains(&"email".to_string())
+    } else {
+        false
+    };
+
+    if needs_migration {
+        // Migrate from old schema: move emails out of users table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS emails (
+                email TEXT PRIMARY KEY,
+                user_id UUID NOT NULL REFERENCES users(id),
+                is_verified BOOLEAN NOT NULL DEFAULT 0
+            )",
+            [],
+        )?;
+
+        conn.execute(
+            "INSERT OR IGNORE INTO emails (email, user_id, is_verified)
+             SELECT email, id, 1 FROM users",
+            [],
+        )?;
+
+        conn.execute("ALTER TABLE users RENAME TO users_old", [])?;
+        conn.execute(
+            "CREATE TABLE users (
+                id UUID PRIMARY KEY,
+                nickname TEXT,
+                name TEXT,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL
+            )",
+            [],
+        )?;
+        conn.execute(
+            "INSERT INTO users (id, password_hash, created_at)
+             SELECT id, password_hash, created_at FROM users_old",
+            [],
+        )?;
+        conn.execute("DROP TABLE users_old", [])?;
+    } else {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS users (
+                id UUID PRIMARY KEY,
+                nickname TEXT,
+                name TEXT,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL
+            )",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS emails (
+                email TEXT PRIMARY KEY,
+                user_id UUID NOT NULL REFERENCES users(id),
+                is_verified BOOLEAN NOT NULL DEFAULT 0
+            )",
+            [],
+        )?;
+    }
+
+    // Recreate sessions table to ensure correct schema (sessions are transient)
+    conn.execute("DROP TABLE IF EXISTS sessions", [])?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS sessions (
             id UUID PRIMARY KEY,
             user_id UUID REFERENCES users(id),
-            access_token TEXT NOT NULL,
-            refresh_token TEXT NOT NULL,
+            token TEXT NOT NULL,
             expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL
         )",
@@ -195,6 +286,19 @@ fn run_migrations(conn: &Connection) -> rusqlite::Result<()> {
         "CREATE TABLE IF NOT EXISTS registration_sessions (
             id UUID PRIMARY KEY,
             email TEXT UNIQUE NOT NULL,
+            verification_code TEXT NOT NULL,
+            created_at TIMESTAMP NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            resend_available_at TIMESTAMP NOT NULL
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS password_restore_sessions (
+            id UUID PRIMARY KEY,
+            user_id UUID REFERENCES users(id),
+            email TEXT NOT NULL,
             verification_code TEXT NOT NULL,
             created_at TIMESTAMP NOT NULL,
             expires_at TIMESTAMP NOT NULL,

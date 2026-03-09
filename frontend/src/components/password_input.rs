@@ -10,6 +10,26 @@ pub enum PasswordStrength {
     Strong,
 }
 
+pub fn compute_password_strength(password: &str) -> PasswordStrength {
+    if password.is_empty() {
+        return PasswordStrength::None;
+    }
+    if password.len() < 8 {
+        return PasswordStrength::Weak;
+    }
+    let has_upper = password.chars().any(|c| c.is_ascii_uppercase());
+    let has_lower = password.chars().any(|c| c.is_ascii_lowercase());
+    let has_digit = password.chars().any(|c| c.is_ascii_digit());
+    let count = has_upper as u8 + has_lower as u8 + has_digit as u8;
+    if count >= 3 {
+        PasswordStrength::Strong
+    } else if count >= 2 {
+        PasswordStrength::Medium
+    } else {
+        PasswordStrength::Weak
+    }
+}
+
 #[component]
 pub fn PasswordWithStrengthInput(
     #[prop(into)] label: String,

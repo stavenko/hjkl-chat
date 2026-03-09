@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RegistrationSession {
+pub struct PasswordRestoreSession {
     pub id: Uuid,
+    pub user_id: Uuid,
     pub email: String,
     pub verification_code: String,
     pub created_at: DateTime<Utc>,
@@ -12,10 +13,11 @@ pub struct RegistrationSession {
     pub resend_available_at: DateTime<Utc>,
 }
 
-impl RegistrationSession {
+impl PasswordRestoreSession {
     pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
-        Ok(RegistrationSession {
+        Ok(PasswordRestoreSession {
             id: row.get("id")?,
+            user_id: row.get("user_id")?,
             email: row.get("email")?,
             verification_code: row.get("verification_code")?,
             created_at: row.get("created_at")?,

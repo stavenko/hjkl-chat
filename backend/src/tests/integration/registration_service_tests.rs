@@ -1,5 +1,6 @@
 use actix_web::test::TestRequest;
 use actix_web::dev::Service;
+use bcrypt;
 use chrono::{Duration, Utc};
 use crate::models::registration::RegistrationSession;
 use crate::tests::test_app::{create_app, create_app_with_fixtures};
@@ -191,8 +192,8 @@ async fn test_registration_init_invalid_email_format_returns_error() {
 }
 
 #[actix_rt::test]
-async fn test_registration_init_duplicate_email_returns_error() {
-    let (_details, app) = create_app().await.unwrap();
+async fn test_registration_init_reinit_replaces_session() {
+    let (details, app) = create_app().await.unwrap();
     let email = unique_email();
 
     let req1 = TestRequest::post()
@@ -201,18 +202,64 @@ async fn test_registration_init_duplicate_email_returns_error() {
         .to_request();
     let resp1 = app.call(req1).await.unwrap();
     assert_eq!(resp1.status(), 200);
-    let _body1: Value = actix_web::test::read_body_json(resp1).await;
+    let body1: Value = actix_web::test::read_body_json(resp1).await;
+    let session_id_1: Uuid = body1["session_id"].as_str().unwrap().parse().unwrap();
 
     let req2 = TestRequest::post()
         .uri("/api/auth/registration/init")
         .set_json(json!({"email": email}))
         .to_request();
     let resp2 = app.call(req2).await.unwrap();
-    assert!(
-        resp2.status() == 409 || resp2.status() == 500,
-        "Duplicate email should return 409 or 500, got: {}",
-        resp2.status()
-    );
+    assert_eq!(resp2.status(), 200, "Re-init with same email should succeed");
+    let body2: Value = actix_web::test::read_body_json(resp2).await;
+    let session_id_2: Uuid = body2["session_id"].as_str().unwrap().parse().unwrap();
+
+    assert_ne!(session_id_1, session_id_2, "New session should have different ID");
+
+    let old_session = get_session_from_db(&details.sqlite, session_id_1);
+    assert!(old_session.is_none(), "Old session should be deleted");
+
+    let new_session = get_session_from_db(&details.sqlite, session_id_2);
+    assert!(new_session.is_some(), "New session should exist");
+}
+
+#[actix_rt::test]
+async fn test_registration_init_rejects_already_registered_email() {
+    let test_email = unique_email();
+    let email_clone = test_email.clone();
+
+    let (_details, app, _) = create_app_with_fixtures(move |det| {
+        let email = email_clone.clone();
+        async move {
+            let password_hash = bcrypt::hash("SomePass123", bcrypt::DEFAULT_COST).unwrap();
+            let user_id = Uuid::new_v4();
+            det.sqlite
+                .execute_with_params(
+                    "INSERT INTO users (id, password_hash, created_at) VALUES (?, ?, ?)",
+                    rusqlite::params![&user_id, &password_hash, Utc::now()],
+                )
+                .unwrap();
+            det.sqlite
+                .execute_with_params(
+                    "INSERT INTO emails (email, user_id, is_verified) VALUES (?, ?, 1)",
+                    rusqlite::params![&email, &user_id],
+                )
+                .unwrap();
+        }
+    })
+    .await
+    .unwrap();
+
+    let req = TestRequest::post()
+        .uri("/api/auth/registration/init")
+        .set_json(json!({"email": test_email}))
+        .to_request();
+
+    let resp = app.call(req).await.unwrap();
+    assert_eq!(resp.status(), 400);
+
+    let body: Value = actix_web::test::read_body_json(resp).await;
+    assert_eq!(body["code"], "EmailAlreadyRegistered");
 }
 
 #[actix_rt::test]
@@ -289,8 +336,8 @@ async fn test_session_uuid_is_valid_format() {
 }
 
 #[actix_rt::test]
-async fn test_session_email_is_unique() {
-    let (_details, app) = create_app().await.unwrap();
+async fn test_session_email_is_unique_after_reinit() {
+    let (details, app) = create_app().await.unwrap();
     let email = unique_email();
 
     let req1 = TestRequest::post()
@@ -306,10 +353,19 @@ async fn test_session_email_is_unique() {
         .set_json(json!({"email": email}))
         .to_request();
     let resp2 = app.call(req2).await.unwrap();
-    assert!(
-        resp2.status() != 200,
-        "Second registration with same email should fail due to UNIQUE constraint"
-    );
+    assert_eq!(resp2.status(), 200, "Re-init should succeed");
+    let _body2: Value = actix_web::test::read_body_json(resp2).await;
+
+    // Verify only one session exists for this email
+    let conn = details.sqlite.get_connection().unwrap();
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM registration_sessions WHERE email = ?",
+            rusqlite::params![&email],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 1, "Should have exactly one session per email after re-init");
 }
 
 #[actix_rt::test]

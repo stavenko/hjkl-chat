@@ -30,8 +30,14 @@ async fn create_app_with_test_user() -> anyhow::Result<(
             let created_at = Utc::now();
             det.sqlite
                 .execute_with_params(
-                    "INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                    rusqlite::params![&user_id, &email, &password_hash, created_at],
+                    "INSERT INTO users (id, password_hash, created_at) VALUES (?, ?, ?)",
+                    rusqlite::params![&user_id, &password_hash, created_at],
+                )
+                .unwrap();
+            det.sqlite
+                .execute_with_params(
+                    "INSERT INTO emails (email, user_id, is_verified) VALUES (?, ?, 1)",
+                    rusqlite::params![&email, &user_id],
                 )
                 .unwrap();
         }
@@ -56,8 +62,7 @@ async fn test_login_successful() {
     let body: serde_json::Value = actix_web::test::read_body_json(resp).await;
     assert_eq!(body["status"], "ok");
     assert_eq!(body["user"]["email"], email);
-    assert!(body["access_token"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
-    assert!(body["refresh_token"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
+    assert!(body["token"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
 }
 
 #[actix_rt::test]

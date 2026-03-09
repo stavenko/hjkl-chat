@@ -29,8 +29,12 @@ pub async fn create_app_with_fixtures<Fut, Out>(
 where
     Fut: std::future::Future<Output = Out>,
 {
-    let config_path = std::env::var(CONFIG_PATH_ENV_VAR)
-        .unwrap_or_else(|_| "docker/test/config.toml".to_string());
+    let config_path = std::env::var(CONFIG_PATH_ENV_VAR).unwrap_or_else(|_| {
+        panic!(
+            "Need var {} to run tests, e.g.: {}=/path/to/docker/test/config.toml cargo test",
+            CONFIG_PATH_ENV_VAR, CONFIG_PATH_ENV_VAR
+        )
+    });
     let mut config = Config::from_file(std::path::Path::new(&config_path))
         .expect("Failed to load test config");
 

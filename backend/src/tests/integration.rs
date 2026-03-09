@@ -6,6 +6,7 @@ mod isolation_tests;
 mod concurrent_tests;
 mod auth_tests;
 mod login_service_tests;
+mod profile_service_tests;
 mod registration_service_tests;
 mod restore_service_tests;
 

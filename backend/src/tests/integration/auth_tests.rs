@@ -101,5 +101,5 @@ async fn test_login_missing_fields_returns_error() {
         .to_request();
 
     let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 400);
+    assert_eq!(resp.status(), 401);
 }

@@ -53,7 +53,7 @@ impl SQLiteProvider {
 
         let conn = Connection::open(&db_path)?;
         conn.pragma_update(None, "journal_mode", "WAL")?;
-        run_migrations(&conn)?;
+        create_schema(&conn)?;
 
         Ok(SQLiteProvider {
             conn: Arc::new(Mutex::new(conn)),
@@ -167,6 +167,14 @@ impl SQLiteProvider {
         Ok(results)
     }
 
+    pub fn migrate(&self) -> SQLiteProviderResult<()> {
+        let conn = self.get_connection()?;
+        run_migrations(&conn)?;
+        drop(conn);
+        self.dump_to_s3();
+        Ok(())
+    }
+
     pub fn dump_to_s3(&self) {
         if let Ok(conn) = self.get_connection() {
             if let Err(e) = conn.pragma_update(None, "wal_checkpoint", "TRUNCATE") {
@@ -196,81 +204,27 @@ impl SQLiteProvider {
 
 }
 
-fn run_migrations(conn: &Connection) -> rusqlite::Result<()> {
-    // Check if users table exists with old schema (has email column)
-    let users_table_exists = conn
-        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")?
-        .exists([])?;
+fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS users (
+            id UUID PRIMARY KEY,
+            nickname TEXT,
+            name TEXT,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP NOT NULL
+        )",
+        [],
+    )?;
 
-    let needs_migration = if users_table_exists {
-        let mut stmt = conn.prepare("PRAGMA table_info(users)")?;
-        let columns: Vec<String> = stmt
-            .query_map([], |row| row.get::<_, String>(1))?
-            .filter_map(|r| r.ok())
-            .collect();
-        columns.contains(&"email".to_string())
-    } else {
-        false
-    };
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS emails (
+            email TEXT PRIMARY KEY,
+            user_id UUID NOT NULL REFERENCES users(id),
+            is_verified BOOLEAN NOT NULL DEFAULT 0
+        )",
+        [],
+    )?;
 
-    if needs_migration {
-        // Migrate from old schema: move emails out of users table
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS emails (
-                email TEXT PRIMARY KEY,
-                user_id UUID NOT NULL REFERENCES users(id),
-                is_verified BOOLEAN NOT NULL DEFAULT 0
-            )",
-            [],
-        )?;
-
-        conn.execute(
-            "INSERT OR IGNORE INTO emails (email, user_id, is_verified)
-             SELECT email, id, 1 FROM users",
-            [],
-        )?;
-
-        conn.execute("ALTER TABLE users RENAME TO users_old", [])?;
-        conn.execute(
-            "CREATE TABLE users (
-                id UUID PRIMARY KEY,
-                nickname TEXT,
-                name TEXT,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP NOT NULL
-            )",
-            [],
-        )?;
-        conn.execute(
-            "INSERT INTO users (id, password_hash, created_at)
-             SELECT id, password_hash, created_at FROM users_old",
-            [],
-        )?;
-        conn.execute("DROP TABLE users_old", [])?;
-    } else {
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS users (
-                id UUID PRIMARY KEY,
-                nickname TEXT,
-                name TEXT,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP NOT NULL
-            )",
-            [],
-        )?;
-
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS emails (
-                email TEXT PRIMARY KEY,
-                user_id UUID NOT NULL REFERENCES users(id),
-                is_verified BOOLEAN NOT NULL DEFAULT 0
-            )",
-            [],
-        )?;
-    }
-
-    // Recreate sessions table to ensure correct schema (sessions are transient)
-    conn.execute("DROP TABLE IF EXISTS sessions", [])?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS sessions (
             id UUID PRIMARY KEY,
@@ -306,6 +260,65 @@ fn run_migrations(conn: &Connection) -> rusqlite::Result<()> {
         )",
         [],
     )?;
+
+    Ok(())
+}
+
+fn run_migrations(conn: &Connection) -> rusqlite::Result<()> {
+    let users_table_exists = conn
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")?
+        .exists([])?;
+
+    if !users_table_exists {
+        return Ok(());
+    }
+
+    let mut stmt = conn.prepare("PRAGMA table_info(users)")?;
+    let columns: Vec<String> = stmt
+        .query_map([], |row| row.get::<_, String>(1))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    if columns.contains(&"email".to_string()) {
+        conn.pragma_update(None, "legacy_alter_table", "ON")?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS emails (
+                email TEXT PRIMARY KEY,
+                user_id UUID NOT NULL REFERENCES users(id),
+                is_verified BOOLEAN NOT NULL DEFAULT 0
+            )",
+            [],
+        )?;
+
+        conn.execute(
+            "INSERT OR IGNORE INTO emails (email, user_id, is_verified)
+             SELECT email, id, 1 FROM users",
+            [],
+        )?;
+
+        conn.execute("ALTER TABLE users RENAME TO users_old", [])?;
+        conn.execute(
+            "CREATE TABLE users (
+                id UUID PRIMARY KEY,
+                nickname TEXT,
+                name TEXT,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL
+            )",
+            [],
+        )?;
+        conn.execute(
+            "INSERT INTO users (id, password_hash, created_at)
+             SELECT id, password_hash, created_at FROM users_old",
+            [],
+        )?;
+        conn.execute("DROP TABLE users_old", [])?;
+
+        conn.pragma_update(None, "legacy_alter_table", "OFF")?;
+
+        println!("Migration complete: moved emails out of users table");
+    }
 
     Ok(())
 }

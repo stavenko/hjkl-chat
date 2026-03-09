@@ -32,6 +32,10 @@ pub enum Commands {
         #[arg(long)]
         config: PathBuf,
     },
+    Migrate {
+        #[arg(long)]
+        config: PathBuf,
+    },
 }
 
 #[actix_web::main]
@@ -41,6 +45,7 @@ async fn main() -> std::io::Result<()> {
     match cli.command {
         Commands::Run { config } => run_server(config).await,
         Commands::DownloadSqlite { config } => download_sqlite(config).await,
+        Commands::Migrate { config } => run_migrate(config).await,
     }
 }
 
@@ -123,14 +128,51 @@ async fn download_sqlite(config_path: PathBuf) -> std::io::Result<()> {
         let data = s3_provider.get_object(&config.sqlite.s3_object_path)
             .await
             .expect("Failed to download SQLite database");
-        
+
         let path = fs_provider.save(data)
             .expect("Failed to save SQLite database locally");
-        
+
         println!("SQLite database downloaded to: {:?}", path);
     } else {
         println!("SQLite database does not exist in S3");
     }
 
+    Ok(())
+}
+
+async fn run_migrate(config_path: PathBuf) -> std::io::Result<()> {
+    let config = Config::from_file(&config_path)
+        .expect("Failed to load configuration file");
+
+    let s3_provider = Arc::new(
+        S3Provider::new(
+            config.s3.bucket.clone(),
+            config.s3.region.clone(),
+            config.s3.client_id.clone(),
+            config.s3.client_secret.clone(),
+            config.s3.host.clone(),
+        )
+        .await
+        .expect("Failed to initialize S3 provider"),
+    );
+
+    let fs_provider = LocalFileSystemProvider::new(
+        PathBuf::from(config.local_fs.root_path.clone())
+    )
+    .expect("Failed to initialize local filesystem provider");
+
+    let sqlite_provider = SQLiteProvider::new(
+        s3_provider,
+        Arc::new(fs_provider),
+        &config.sqlite.s3_object_path,
+    )
+    .await
+    .expect("Failed to initialize SQLite provider");
+
+    sqlite_provider
+        .migrate()
+        .expect("Migration failed");
+
+    println!("Migrations complete");
     Ok(())
 }

@@ -298,3 +298,139 @@ pub fn clear_token() {
         .remove_item("token")
         .expect("failed to remove token");
 }
+
+// --- Authenticated requests ---
+
+async fn post_json_authenticated<Req: Serialize, Resp: DeserializeOwned>(
+    path: &str,
+    payload: &Req,
+) -> Result<Resp, String> {
+    let base_url = get_api_base_url();
+    let url = format!("{}{}", base_url, path);
+
+    let token = get_token().ok_or_else(|| "Not authenticated".to_string())?;
+
+    let body = serde_json::to_string(payload)
+        .map_err(|e| format!("Failed to serialize request: {}", e))?;
+
+    let opts = RequestInit::new();
+    opts.set_method("POST");
+    opts.set_mode(RequestMode::SameOrigin);
+    opts.set_body(&wasm_bindgen::JsValue::from_str(&body));
+
+    let headers =
+        Headers::new().map_err(|e| format!("Failed to create headers: {:?}", e))?;
+    headers
+        .set("Content-Type", "application/json")
+        .map_err(|e| format!("Failed to set header: {:?}", e))?;
+    headers
+        .set("Authorization", &format!("Bearer {}", token))
+        .map_err(|e| format!("Failed to set header: {:?}", e))?;
+    opts.set_headers(&headers);
+
+    let window = web_sys::window().expect("no window");
+    let resp_value =
+        JsFuture::from(window.fetch_with_str_and_init(&url, &opts))
+            .await
+            .map_err(|e| format!("Network error: {:?}", e))?;
+
+    let resp: web_sys::Response = resp_value
+        .dyn_into()
+        .map_err(|e| format!("Failed to convert response: {:?}", e))?;
+
+    let text = JsFuture::from(
+        resp.text()
+            .map_err(|e| format!("Failed to read body: {:?}", e))?,
+    )
+    .await
+    .map_err(|e| format!("Failed to await body: {:?}", e))?;
+
+    let text_str = text
+        .as_string()
+        .ok_or_else(|| "Response body is not a string".to_string())?;
+
+    if resp.ok() {
+        serde_json::from_str::<Resp>(&text_str)
+            .map_err(|e| format!("Failed to parse response: {}", e))
+    } else {
+        #[derive(Deserialize)]
+        struct ErrorResponse {
+            message: String,
+        }
+        match serde_json::from_str::<ErrorResponse>(&text_str) {
+            Ok(err) => Err(err.message),
+            Err(_) => Err(format!("Request failed with status {}", resp.status())),
+        }
+    }
+}
+
+// --- Profile ---
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct EmailInfo {
+    pub email: String,
+    pub is_verified: bool,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct MeResponse {
+    pub status: String,
+    pub id: String,
+    pub name: Option<String>,
+    pub nickname: Option<String>,
+    pub emails: Vec<EmailInfo>,
+}
+
+pub async fn get_me() -> Result<MeResponse, String> {
+    #[derive(Serialize)]
+    struct Empty {}
+    post_json_authenticated("/api/auth/me", &Empty {}).await
+}
+
+#[derive(Serialize)]
+struct UpdateProfileRequest {
+    name: Option<String>,
+    nickname: Option<String>,
+}
+
+pub async fn update_profile(
+    name: Option<String>,
+    nickname: Option<String>,
+) -> Result<MeResponse, String> {
+    post_json_authenticated(
+        "/api/auth/change-profile",
+        &UpdateProfileRequest { name, nickname },
+    )
+    .await
+}
+
+// --- Change Password ---
+
+#[derive(Serialize)]
+struct ChangePasswordRequest {
+    old_password: String,
+    new_password: String,
+    new_password_confirm: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct ChangePasswordResponse {
+    pub status: String,
+    pub message: String,
+}
+
+pub async fn change_password(
+    old_password: &str,
+    new_password: &str,
+    new_password_confirm: &str,
+) -> Result<ChangePasswordResponse, String> {
+    post_json_authenticated(
+        "/api/auth/change-password",
+        &ChangePasswordRequest {
+            old_password: old_password.to_string(),
+            new_password: new_password.to_string(),
+            new_password_confirm: new_password_confirm.to_string(),
+        },
+    )
+    .await
+}

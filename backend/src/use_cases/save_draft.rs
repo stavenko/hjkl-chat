@@ -1,4 +1,4 @@
-use crate::models::chat::ChatSummary;
+use crate::models::chat::{ChatId, MessageId};
 use crate::providers::chat_storage::ChatStorageError;
 use crate::providers::personalized_chat_storage::PersonalizedChatStorage;
 
@@ -17,14 +17,28 @@ impl From<Error> for crate::api::Error {
     }
 }
 
+pub struct Input {
+    pub chat_id: ChatId,
+    pub message_id: MessageId,
+    pub content: String,
+    pub model: String,
+}
+
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Output {
-    pub chats: Vec<ChatSummary>,
+    pub message_id: MessageId,
 }
 
 pub async fn command(
     storage: &PersonalizedChatStorage,
+    input: Input,
 ) -> Result<Output, Error> {
-    let chats = storage.list_chats().await?;
-    Ok(Output { chats })
+    let chat_storage = storage.get_chat_storage(input.chat_id);
+    chat_storage.get_or_create_chat(&input.model).await?;
+    chat_storage
+        .save_draft(input.message_id, &input.content)
+        .await?;
+    Ok(Output {
+        message_id: input.message_id,
+    })
 }

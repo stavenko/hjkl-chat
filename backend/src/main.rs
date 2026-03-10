@@ -10,7 +10,7 @@ mod tests;
 use actix_web::web;
 use clap::Parser;
 use config::Config;
-use providers::llm::LlmProvider;
+use providers::pipes::PipesProvider;
 use providers::websocket::WebSocketProvider;
 use providers::{LocalFileSystemProvider, S3Provider, SMTPProvider, SQLiteProvider};
 use std::path::PathBuf;
@@ -94,7 +94,7 @@ async fn run_server(config_path: PathBuf) -> std::io::Result<()> {
 
     let sqlite_provider = Arc::new(sqlite_provider);
 
-    let llm_provider = Arc::new(LlmProvider::new(config.llm.clone()));
+    let pipes_provider = Arc::new(PipesProvider::new(config.pipes.clone()));
     let ws_provider = Arc::new(WebSocketProvider::new());
 
     let server = actix_web::HttpServer::new(move || {
@@ -102,7 +102,7 @@ async fn run_server(config_path: PathBuf) -> std::io::Result<()> {
             .app_data(web::Data::new(sqlite_provider.clone()))
             .app_data(web::Data::new(smtp_provider.clone()))
             .app_data(web::Data::new(s3_provider.clone()))
-            .app_data(web::Data::new(llm_provider.clone()))
+            .app_data(web::Data::new(pipes_provider.clone()))
             .app_data(web::Data::new(ws_provider.clone()))
             .configure(api::configure_routes)
     })

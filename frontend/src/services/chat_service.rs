@@ -108,43 +108,12 @@ pub struct ChatMessage {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct Chat {
-    pub id: String,
-    pub user_id: String,
-    pub title: String,
-    pub model: String,
-    pub created_at: String,
-    pub messages: Vec<ChatMessage>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
 pub struct ModelInfo {
     pub id: String,
     pub name: String,
 }
 
 // --- API functions ---
-
-#[derive(Serialize)]
-struct CreateChatRequest {
-    model: String,
-}
-
-#[derive(Deserialize)]
-pub struct CreateChatResponse {
-    pub status: String,
-    pub chat_id: String,
-}
-
-pub async fn create_chat(model: &str) -> Result<CreateChatResponse, String> {
-    post_json(
-        "/api/chat",
-        &CreateChatRequest {
-            model: model.to_string(),
-        },
-    )
-    .await
-}
 
 #[derive(Deserialize)]
 pub struct ListChatsResponse {
@@ -156,42 +125,74 @@ pub async fn list_chats() -> Result<ListChatsResponse, String> {
     get_json("/api/chat").await
 }
 
+#[derive(Serialize)]
+struct SaveDraftRequest {
+    message_id: String,
+    content: String,
+    model: String,
+}
+
 #[derive(Deserialize)]
-pub struct GetChatResponse {
+pub struct SaveDraftResponse {
     pub status: String,
-    pub id: String,
-    pub user_id: String,
-    pub title: String,
-    pub model: String,
-    pub created_at: String,
+    pub message_id: String,
+}
+
+pub async fn save_draft(
+    chat_id: &str,
+    message_id: &str,
+    content: &str,
+    model: &str,
+) -> Result<SaveDraftResponse, String> {
+    post_json(
+        &format!("/api/chat/{}/draft", chat_id),
+        &SaveDraftRequest {
+            message_id: message_id.to_string(),
+            content: content.to_string(),
+            model: model.to_string(),
+        },
+    )
+    .await
+}
+
+#[derive(Deserialize)]
+pub struct GetChatMessagesResponse {
+    pub status: String,
     pub messages: Vec<ChatMessage>,
 }
 
-pub async fn get_chat(chat_id: &str) -> Result<GetChatResponse, String> {
-    get_json(&format!("/api/chat/{}", chat_id)).await
+pub async fn get_chat_messages(
+    chat_id: &str,
+    last_n: Option<usize>,
+) -> Result<GetChatMessagesResponse, String> {
+    let path = match last_n {
+        Some(n) => format!("/api/chat/{}/messages?last_n={}", chat_id, n),
+        None => format!("/api/chat/{}/messages", chat_id),
+    };
+    get_json(&path).await
 }
 
 #[derive(Serialize)]
 struct SendMessageRequest {
-    content: String,
+    message_id: String,
     model: String,
 }
 
 #[derive(Deserialize)]
 pub struct SendMessageResponse {
     pub status: String,
-    pub message_id: String,
+    pub assistant_message_id: String,
 }
 
 pub async fn send_message(
     chat_id: &str,
-    content: &str,
+    message_id: &str,
     model: &str,
 ) -> Result<SendMessageResponse, String> {
     post_json(
-        &format!("/api/chat/{}/messages", chat_id),
+        &format!("/api/chat/{}/send", chat_id),
         &SendMessageRequest {
-            content: content.to_string(),
+            message_id: message_id.to_string(),
             model: model.to_string(),
         },
     )

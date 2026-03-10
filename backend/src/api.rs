@@ -1,5 +1,6 @@
 mod endpoints;
 mod configurator;
+pub mod auth_extractor;
 pub mod middleware;
 pub mod response;
 

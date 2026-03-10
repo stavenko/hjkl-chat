@@ -21,3 +21,8 @@ use_tls = false
 username = ""
 password = ""
 from_email = "noreply@example.com"
+
+[llm]
+models_url = "http://192.168.1.17:8080/v1/models"
+api_base_url = "http://192.168.1.17:8080/v1"
+api_key = ""

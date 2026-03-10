@@ -1,4 +1,5 @@
 pub mod change_password;
+pub mod chat;
 mod helpers;
 pub mod login;
 pub mod profile;

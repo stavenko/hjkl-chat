@@ -1,10 +1,13 @@
 mod auth_link;
 mod button;
+mod chat_bubble;
+mod chat_input;
 mod countdown_button;
 mod form_description;
 mod form_header;
 pub mod icons;
 mod logo;
+mod model_selector;
 mod password_input;
 mod password_login_input;
 mod surface;
@@ -13,10 +16,13 @@ mod theme_toggle;
 
 pub use auth_link::*;
 pub use button::*;
+pub use chat_bubble::*;
+pub use chat_input::*;
 pub use countdown_button::*;
 pub use form_description::*;
 pub use form_header::*;
 pub use logo::*;
+pub use model_selector::*;
 pub use password_input::*;
 pub use password_login_input::*;
 pub use surface::*;

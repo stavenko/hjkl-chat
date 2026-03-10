@@ -3,6 +3,7 @@ use leptos_router::*;
 
 use crate::components::ThemeToggle;
 use crate::pages::change_password::ChangePasswordPage;
+use crate::pages::chat::ChatPage;
 use crate::pages::login::LoginPage;
 use crate::pages::profile::ProfilePage;
 use crate::pages::registration_input_email::RegistrationInputEmailPage;
@@ -35,6 +36,8 @@ pub fn App() -> impl IntoView {
                     <Route path="/password/restore/success" view=RestoreSuccessPage/>
                     <Route path="/me" view=ProfilePage/>
                     <Route path="/me/change-password" view=ChangePasswordPage/>
+                    <Route path="/chat" view=ChatPage/>
+                    <Route path="/chat/:id" view=ChatPage/>
                     <Route path="/" view=HomePage/>
                 </Routes>
             </main>
@@ -45,13 +48,13 @@ pub fn App() -> impl IntoView {
 #[component]
 fn HomePage() -> impl IntoView {
     let navigate = use_navigate();
-    if !auth_service::is_authenticated() {
-        navigate("/login", NavigateOptions {
+    if auth_service::is_authenticated() {
+        navigate("/chat", NavigateOptions {
             replace: true,
             ..Default::default()
         });
     } else {
-        navigate("/me", NavigateOptions {
+        navigate("/login", NavigateOptions {
             replace: true,
             ..Default::default()
         });

@@ -98,6 +98,25 @@ impl S3Provider {
         Ok(())
     }
 
+    pub async fn list_objects(&self, prefix: &str) -> S3ProviderResult<Vec<String>> {
+        let result = self
+            .client
+            .list_objects_v2()
+            .bucket(&self.bucket)
+            .prefix(prefix)
+            .send()
+            .await
+            .map_err(|e| S3ProviderError::AwsSdk(e.to_string()))?;
+
+        let keys = result
+            .contents()
+            .iter()
+            .filter_map(|obj| obj.key().map(|k| k.to_string()))
+            .collect();
+
+        Ok(keys)
+    }
+
     pub async fn object_exists(&self, key: &str) -> S3ProviderResult<bool> {
         match self.client.head_object().bucket(&self.bucket).key(key).send().await {
             Ok(_) => Ok(true),

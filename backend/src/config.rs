@@ -10,6 +10,14 @@ pub struct Config {
     pub s3: S3Config,
     pub local_fs: LocalFsConfig,
     pub smtp: SmtpConfig,
+    pub llm: LlmConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LlmConfig {
+    pub models_url: String,
+    pub api_base_url: String,
+    pub api_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

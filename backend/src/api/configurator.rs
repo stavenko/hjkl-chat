@@ -1,6 +1,7 @@
 use crate::api::endpoints::{
     auth_login, auth_registration_complete, auth_registration_init, auth_registration_verify,
     auth_restore_complete, auth_restore_init, auth_restore_verify,
+    chat_create, chat_get, chat_list, chat_models, chat_send_message, ws,
 };
 use actix_web::web;
 
@@ -21,4 +22,13 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                 web::post().to(auth_restore_complete::handler),
             ),
     );
+    cfg.service(
+        web::scope("/api/chat")
+            .route("/models", web::get().to(chat_models::handler))
+            .route("", web::post().to(chat_create::handler))
+            .route("", web::get().to(chat_list::handler))
+            .route("/{chat_id}", web::get().to(chat_get::handler))
+            .route("/{chat_id}/messages", web::post().to(chat_send_message::handler)),
+    );
+    cfg.route("/api/ws", web::get().to(ws::handler));
 }

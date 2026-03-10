@@ -1,0 +1,65 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::{mpsc, RwLock};
+use uuid::Uuid;
+
+use crate::providers::llm::LlmTokenKind;
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "type")]
+pub enum WsOutMessage {
+    Token {
+        chat_id: Uuid,
+        message_id: Uuid,
+        kind: LlmTokenKind,
+        text: String,
+    },
+    MessageComplete {
+        chat_id: Uuid,
+        message_id: Uuid,
+    },
+    Error {
+        chat_id: Uuid,
+        message: String,
+    },
+}
+
+pub struct WebSocketProvider {
+    connections: Arc<RwLock<HashMap<Uuid, Vec<mpsc::UnboundedSender<WsOutMessage>>>>>,
+}
+
+impl WebSocketProvider {
+    pub fn new() -> Self {
+        WebSocketProvider {
+            connections: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
+    pub async fn register(
+        &self,
+        user_id: Uuid,
+        sender: mpsc::UnboundedSender<WsOutMessage>,
+    ) {
+        let mut conns = self.connections.write().await;
+        conns.entry(user_id).or_default().push(sender);
+    }
+
+    pub async fn unregister(&self, user_id: Uuid, sender: &mpsc::UnboundedSender<WsOutMessage>) {
+        let mut conns = self.connections.write().await;
+        if let Some(senders) = conns.get_mut(&user_id) {
+            senders.retain(|s| !s.same_channel(sender));
+            if senders.is_empty() {
+                conns.remove(&user_id);
+            }
+        }
+    }
+
+    pub async fn send_to_user(&self, user_id: Uuid, msg: WsOutMessage) {
+        let conns = self.connections.read().await;
+        if let Some(senders) = conns.get(&user_id) {
+            for sender in senders {
+                let _ = sender.send(msg.clone());
+            }
+        }
+    }
+}

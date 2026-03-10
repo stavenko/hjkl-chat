@@ -1,3 +1,7 @@
+pub mod create_chat;
+pub mod get_chat;
+pub mod list_chats;
+pub mod list_models;
 pub mod login;
 pub mod registration_complete;
 pub mod registration_init;
@@ -5,3 +9,4 @@ pub mod registration_verify;
 pub mod restore_complete;
 pub mod restore_init;
 pub mod restore_verify;
+pub mod send_message;

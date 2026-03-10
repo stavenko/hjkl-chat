@@ -23,6 +23,12 @@ clap = { version = "4", features = ["derive"] }
 toml = "0.8"
 rand = "0.8"
 async-trait = "0.1"
+serde_yaml = "0.9"
+actix-ws = "0.3"
+tokio-stream = "0.1"
+futures = "0.3"
+arti-pipes = { git = "https://github.com/stavenko/arti-pipes" }
+reqwest = { version = "0.11", features = ["json"] }
 
 [dev-dependencies]
 actix-rt = "2"

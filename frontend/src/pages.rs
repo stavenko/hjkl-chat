@@ -1,3 +1,4 @@
+pub mod chat;
 mod helpers;
 pub mod login;
 pub mod registration_input_email;

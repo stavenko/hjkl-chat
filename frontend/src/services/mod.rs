@@ -1,4 +1,6 @@
 pub mod auth_service;
+pub mod chat_service;
+pub mod ws_service;
 
 use leptos::*;
 use wasm_bindgen::JsCast;

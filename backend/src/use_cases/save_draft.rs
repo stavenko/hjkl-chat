@@ -17,8 +17,8 @@ impl From<Error> for crate::api::Error {
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct Input {
-    pub chat_id: ChatId,
     pub message_id: MessageId,
     pub content: String,
     pub model: String,
@@ -31,9 +31,10 @@ pub struct Output {
 
 pub async fn command(
     storage: &PersonalizedChatStorage,
+    chat_id: ChatId,
     input: Input,
 ) -> Result<Output, Error> {
-    let chat_storage = storage.get_chat_storage(input.chat_id);
+    let chat_storage = storage.get_chat_storage(chat_id);
     chat_storage.get_or_create_chat(&input.model).await?;
     chat_storage
         .save_draft(input.message_id, &input.content)

@@ -1,4 +1,4 @@
-use crate::models::chat::{Chat, ChatId, ChatMessage, MessageId, MessageRole};
+use crate::models::chat::{ChatId, ChatIndex, ChatMessage, ChatMeta, MessageId, MessageRole};
 use crate::providers::personalized_file_storage::PersonalizedFileStorage;
 use chrono::Utc;
 
@@ -41,49 +41,49 @@ impl ChatStorage {
         self.chat_id
     }
 
-    fn chat_meta_path(&self) -> String {
+    fn chat_index_path(&self) -> String {
         format!("chats/{}/chat.yaml", self.chat_id)
     }
 
-    fn messages_path(&self) -> String {
-        format!("chats/{}/messages.yaml", self.chat_id)
+    fn chat_meta_path(&self) -> String {
+        format!("chats/{}/chat-meta.yaml", self.chat_id)
+    }
+
+    fn message_path(&self, message_id: &MessageId) -> String {
+        format!("chats/{}/messages/{}.yaml", self.chat_id, message_id)
     }
 
     fn draft_path(&self, message_id: &MessageId) -> String {
         format!("chats/{}/drafts/{}.yaml", self.chat_id, message_id)
     }
 
-    pub async fn get_or_create_chat(&self, model: &str) -> ChatStorageResult<Chat> {
-        let meta_path = self.chat_meta_path();
-        if self
-            .file_storage
-            .exists(&meta_path)
-            .await
-            .map_err(ChatStorageError::S3)?
-        {
-            let data = self
-                .file_storage
-                .get(&meta_path)
-                .await
-                .map_err(ChatStorageError::S3)?;
+    pub async fn get_or_create_chat(&self, model: &str) -> ChatStorageResult<ChatIndex> {
+        let index_path = self.chat_index_path();
+        if self.file_storage.exists(&index_path).await? {
+            let data = self.file_storage.get(&index_path).await?;
             let yaml_str = String::from_utf8(data)?;
-            let chat: Chat = serde_yaml::from_str(&yaml_str)?;
-            Ok(chat)
+            let index: ChatIndex = serde_yaml::from_str(&yaml_str)?;
+            Ok(index)
         } else {
-            let chat = Chat {
+            let index = ChatIndex {
+                id: self.chat_id,
+                model: model.to_string(),
+                message_ids: Vec::new(),
+            };
+            let yaml = serde_yaml::to_string(&index)?;
+            self.file_storage.put(&index_path, yaml.as_bytes()).await?;
+
+            let meta = ChatMeta {
                 id: self.chat_id,
                 user_id: self.file_storage.user_id(),
-                title: "New Chat".to_string(),
                 model: model.to_string(),
                 created_at: Utc::now(),
-                messages: Vec::new(),
             };
-            let yaml = serde_yaml::to_string(&chat)?;
-            self.file_storage
-                .put(&meta_path, yaml.as_bytes())
-                .await
-                .map_err(ChatStorageError::S3)?;
-            Ok(chat)
+            let meta_yaml = serde_yaml::to_string(&meta)?;
+            let meta_path = self.chat_meta_path();
+            self.file_storage.put(&meta_path, meta_yaml.as_bytes()).await?;
+
+            Ok(index)
         }
     }
 
@@ -101,42 +101,30 @@ impl ChatStorage {
         };
         let yaml = serde_yaml::to_string(&draft)?;
         let path = self.draft_path(&message_id);
-        self.file_storage
-            .put(&path, yaml.as_bytes())
-            .await
-            .map_err(ChatStorageError::S3)?;
+        self.file_storage.put(&path, yaml.as_bytes()).await?;
         Ok(())
     }
 
     pub async fn send_message(&self, message_id: MessageId) -> ChatStorageResult<ChatMessage> {
         let draft_path = self.draft_path(&message_id);
-        if !self
-            .file_storage
-            .exists(&draft_path)
-            .await
-            .map_err(ChatStorageError::S3)?
-        {
+        if !self.file_storage.exists(&draft_path).await? {
             return Err(ChatStorageError::DraftNotFound);
         }
 
-        let data = self
-            .file_storage
-            .get(&draft_path)
-            .await
-            .map_err(ChatStorageError::S3)?;
+        let data = self.file_storage.get(&draft_path).await?;
         let yaml_str = String::from_utf8(data)?;
         let draft: ChatMessage = serde_yaml::from_str(&yaml_str)?;
 
-        let mut messages = self.load_messages().await?;
-        messages.push(draft.clone());
-        self.save_messages(&messages).await?;
+        // Save as individual message file
+        let msg_path = self.message_path(&message_id);
+        let msg_yaml = serde_yaml::to_string(&draft)?;
+        self.file_storage.put(&msg_path, msg_yaml.as_bytes()).await?;
 
-        self.update_title_if_needed(&messages).await?;
+        // Append to chat index
+        self.append_message_id(message_id).await?;
 
-        self.file_storage
-            .delete(&draft_path)
-            .await
-            .map_err(ChatStorageError::S3)?;
+        // Delete the draft
+        self.file_storage.delete(&draft_path).await?;
 
         Ok(draft)
     }
@@ -145,100 +133,66 @@ impl ChatStorage {
         &self,
         message: ChatMessage,
     ) -> ChatStorageResult<()> {
-        let mut messages = self.load_messages().await?;
-        messages.push(message);
-        self.save_messages(&messages).await?;
+        let msg_path = self.message_path(&message.id);
+        let yaml = serde_yaml::to_string(&message)?;
+        self.file_storage.put(&msg_path, yaml.as_bytes()).await?;
+
+        self.append_message_id(message.id).await?;
+
         Ok(())
     }
 
     pub async fn get_last_n(&self, n: usize) -> ChatStorageResult<Vec<ChatMessage>> {
-        let messages = self.load_messages().await?;
-        if n >= messages.len() {
-            Ok(messages)
-        } else {
-            Ok(messages[messages.len() - n..].to_vec())
+        let index = self.load_index().await?;
+        let ids = &index.message_ids;
+        let start = if n >= ids.len() { 0 } else { ids.len() - n };
+        let mut messages = Vec::new();
+        for id in &ids[start..] {
+            let msg = self.load_message(id).await?;
+            messages.push(msg);
         }
-    }
-
-    pub async fn get_all_messages(&self) -> ChatStorageResult<Vec<ChatMessage>> {
-        self.load_messages().await
-    }
-
-    pub async fn get_message_count(&self) -> ChatStorageResult<usize> {
-        let messages = self.load_messages().await?;
-        Ok(messages.len())
-    }
-
-    async fn load_messages(&self) -> ChatStorageResult<Vec<ChatMessage>> {
-        let path = self.messages_path();
-        if !self
-            .file_storage
-            .exists(&path)
-            .await
-            .map_err(ChatStorageError::S3)?
-        {
-            return Ok(Vec::new());
-        }
-        let data = self
-            .file_storage
-            .get(&path)
-            .await
-            .map_err(ChatStorageError::S3)?;
-        let yaml_str = String::from_utf8(data)?;
-        let messages: Vec<ChatMessage> = serde_yaml::from_str(&yaml_str)?;
         Ok(messages)
     }
 
-    async fn save_messages(&self, messages: &[ChatMessage]) -> ChatStorageResult<()> {
-        let yaml = serde_yaml::to_string(messages)?;
-        let path = self.messages_path();
-        self.file_storage
-            .put(&path, yaml.as_bytes())
-            .await
-            .map_err(ChatStorageError::S3)?;
-        Ok(())
+    pub async fn get_all_messages(&self) -> ChatStorageResult<Vec<ChatMessage>> {
+        let index = self.load_index().await?;
+        let mut messages = Vec::new();
+        for id in &index.message_ids {
+            let msg = self.load_message(id).await?;
+            messages.push(msg);
+        }
+        Ok(messages)
     }
 
-    async fn update_title_if_needed(
-        &self,
-        messages: &[ChatMessage],
-    ) -> ChatStorageResult<()> {
-        let meta_path = self.chat_meta_path();
-        if !self
-            .file_storage
-            .exists(&meta_path)
-            .await
-            .map_err(ChatStorageError::S3)?
-        {
-            return Ok(());
+    async fn load_index(&self) -> ChatStorageResult<ChatIndex> {
+        let path = self.chat_index_path();
+        if !self.file_storage.exists(&path).await? {
+            return Ok(ChatIndex {
+                id: self.chat_id,
+                model: String::new(),
+                message_ids: Vec::new(),
+            });
         }
-
-        let data = self
-            .file_storage
-            .get(&meta_path)
-            .await
-            .map_err(ChatStorageError::S3)?;
+        let data = self.file_storage.get(&path).await?;
         let yaml_str = String::from_utf8(data)?;
-        let mut chat: Chat = serde_yaml::from_str(&yaml_str)?;
+        let index: ChatIndex = serde_yaml::from_str(&yaml_str)?;
+        Ok(index)
+    }
 
-        if chat.title == "New Chat" {
-            if let Some(first_user_msg) = messages
-                .iter()
-                .find(|m| matches!(m.role, MessageRole::User))
-            {
-                let title: String = first_user_msg.content.chars().take(50).collect();
-                chat.title = if title.len() < first_user_msg.content.len() {
-                    format!("{}...", title)
-                } else {
-                    title
-                };
-                let yaml = serde_yaml::to_string(&chat)?;
-                self.file_storage
-                    .put(&meta_path, yaml.as_bytes())
-                    .await
-                    .map_err(ChatStorageError::S3)?;
-            }
-        }
+    async fn load_message(&self, message_id: &MessageId) -> ChatStorageResult<ChatMessage> {
+        let path = self.message_path(message_id);
+        let data = self.file_storage.get(&path).await?;
+        let yaml_str = String::from_utf8(data)?;
+        let msg: ChatMessage = serde_yaml::from_str(&yaml_str)?;
+        Ok(msg)
+    }
+
+    async fn append_message_id(&self, message_id: MessageId) -> ChatStorageResult<()> {
+        let mut index = self.load_index().await?;
+        index.message_ids.push(message_id);
+        let yaml = serde_yaml::to_string(&index)?;
+        let path = self.chat_index_path();
+        self.file_storage.put(&path, yaml.as_bytes()).await?;
         Ok(())
     }
 }

@@ -21,31 +21,36 @@ pub struct ChatMessage {
     pub created_at: DateTime<Utc>,
 }
 
+/// Stored in chats/{chat_id}/chat.yaml — ordered list of message IDs
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Chat {
+pub struct ChatIndex {
+    pub id: ChatId,
+    pub model: String,
+    pub message_ids: Vec<MessageId>,
+}
+
+/// Stored in chats/{chat_id}/chat-meta.yaml — metadata for listing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatMeta {
     pub id: ChatId,
     pub user_id: UserId,
-    pub title: String,
     pub model: String,
     pub created_at: DateTime<Utc>,
-    pub messages: Vec<ChatMessage>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatSummary {
     pub id: ChatId,
-    pub title: String,
     pub model: String,
     pub created_at: DateTime<Utc>,
 }
 
-impl From<&Chat> for ChatSummary {
-    fn from(chat: &Chat) -> Self {
+impl From<&ChatMeta> for ChatSummary {
+    fn from(meta: &ChatMeta) -> Self {
         ChatSummary {
-            id: chat.id,
-            title: chat.title.clone(),
-            model: chat.model.clone(),
-            created_at: chat.created_at,
+            id: meta.id,
+            model: meta.model.clone(),
+            created_at: meta.created_at,
         }
     }
 }

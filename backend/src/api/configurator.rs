@@ -29,10 +29,10 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/chat")
             .route("/models", web::get().to(chat_models::handler))
-            .route("", web::get().to(chat_list::handler))
+            .route("/list", web::post().to(chat_list::handler))
             .route("/{chat_id}/messages", web::get().to(chat_get_messages::handler))
-            .route("/{chat_id}/draft", web::post().to(chat_save_draft::handler))
-            .route("/{chat_id}/send", web::post().to(chat_send_message::handler)),
+            .route("/{chat_id}/save_draft", web::post().to(chat_save_draft::handler))
+            .route("/{chat_id}/send-message", web::post().to(chat_send_message::handler)),
     );
     cfg.route("/api/ws", web::get().to(ws::handler));
 }

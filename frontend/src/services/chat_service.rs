@@ -93,7 +93,6 @@ async fn get_json<Resp: DeserializeOwned>(path: &str) -> Result<Resp, String> {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ChatSummary {
     pub id: String,
-    pub title: String,
     pub model: String,
     pub created_at: String,
 }
@@ -122,7 +121,7 @@ pub struct ListChatsResponse {
 }
 
 pub async fn list_chats() -> Result<ListChatsResponse, String> {
-    get_json("/api/chat").await
+    post_json("/api/chat/list", &serde_json::json!({})).await
 }
 
 #[derive(Serialize)]
@@ -145,7 +144,7 @@ pub async fn save_draft(
     model: &str,
 ) -> Result<SaveDraftResponse, String> {
     post_json(
-        &format!("/api/chat/{}/draft", chat_id),
+        &format!("/api/chat/{}/save_draft", chat_id),
         &SaveDraftRequest {
             message_id: message_id.to_string(),
             content: content.to_string(),
@@ -190,7 +189,7 @@ pub async fn send_message(
     model: &str,
 ) -> Result<SendMessageResponse, String> {
     post_json(
-        &format!("/api/chat/{}/send", chat_id),
+        &format!("/api/chat/{}/send-message", chat_id),
         &SendMessageRequest {
             message_id: message_id.to_string(),
             model: model.to_string(),

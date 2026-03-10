@@ -17,8 +17,8 @@ impl From<Error> for crate::api::Error {
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct Input {
-    pub chat_id: ChatId,
     pub last_n: Option<usize>,
 }
 
@@ -29,9 +29,10 @@ pub struct Output {
 
 pub async fn command(
     storage: &PersonalizedChatStorage,
+    chat_id: ChatId,
     input: Input,
 ) -> Result<Output, Error> {
-    let chat_storage = storage.get_chat_storage(input.chat_id);
+    let chat_storage = storage.get_chat_storage(chat_id);
     let messages = match input.last_n {
         Some(n) => chat_storage.get_last_n(n).await?,
         None => chat_storage.get_all_messages().await?,

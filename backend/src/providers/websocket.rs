@@ -3,7 +3,18 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
 use crate::models::chat::{ChatId, MessageId, UserId};
-use crate::providers::pipes::LlmTokenKind;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum LlmTokenKind {
+    Thinking,
+    Content,
+}
+
+#[derive(Debug, Clone)]
+pub struct LlmToken {
+    pub kind: LlmTokenKind,
+    pub text: String,
+}
 
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(tag = "type")]

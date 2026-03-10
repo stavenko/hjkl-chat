@@ -2,6 +2,8 @@ use leptos::*;
 use leptos_router::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+use uuid::Uuid;
+use wasm_bindgen::JsCast;
 
 use crate::components::{ChatBubble, ChatInput, ModelSelector};
 use crate::services::{auth_service, chat_service, ws_service};
@@ -38,6 +40,8 @@ pub fn ChatPage() -> impl IntoView {
     let ws_connected = create_rw_signal(false);
     let error_msg: RwSignal<Option<String>> = create_rw_signal(None);
     let ws_conn: Rc<RefCell<Option<ws_service::WsConnection>>> = Rc::new(RefCell::new(None));
+    let current_message_id: RwSignal<Option<String>> = create_rw_signal(None);
+    let draft_timeout: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(None));
 
     // Load models on mount
     spawn_local({
@@ -109,20 +113,18 @@ pub fn ChatPage() -> impl IntoView {
         });
     }
 
-    // Load existing chat or create one from URL param
+    // Initialize chat_id and load existing messages
     spawn_local({
         let params = params;
         let chat_id = chat_id;
         let messages = messages;
-        let selected_model = selected_model;
         async move {
             let p = params.get_untracked();
             if let Some(id) = p.get("id") {
                 if !id.is_empty() {
                     chat_id.set(id.clone());
-                    match chat_service::get_chat(id).await {
+                    match chat_service::get_chat_messages(id, None).await {
                         Ok(resp) => {
-                            selected_model.set(resp.model);
                             let bubbles: Vec<MessageBubble> = resp
                                 .messages
                                 .into_iter()
@@ -135,13 +137,78 @@ pub fn ChatPage() -> impl IntoView {
                                 .collect();
                             messages.set(bubbles);
                         }
-                        Err(e) => {
-                            error_msg.set(Some(format!("Failed to load chat: {}", e)));
+                        Err(_e) => {
+                            // Chat might not exist yet, that's ok for new chats
                         }
                     }
+                } else {
+                    // No id param — generate a new chat_id and navigate
+                    let new_id = Uuid::new_v4().to_string();
+                    chat_id.set(new_id.clone());
+                    let navigate = use_navigate();
+                    navigate(
+                        &format!("/chat/{}", new_id),
+                        NavigateOptions {
+                            replace: true,
+                            ..Default::default()
+                        },
+                    );
                 }
+            } else {
+                // No :id route param at all — generate and navigate
+                let new_id = Uuid::new_v4().to_string();
+                chat_id.set(new_id.clone());
+                let navigate = use_navigate();
+                navigate(
+                    &format!("/chat/{}", new_id),
+                    NavigateOptions {
+                        replace: true,
+                        ..Default::default()
+                    },
+                );
             }
         }
+    });
+
+    // Debounced draft saving on input change
+    let draft_timeout_clone = draft_timeout.clone();
+    create_effect(move |_| {
+        let text = input_text.get();
+        let cid = chat_id.get_untracked();
+        let model = selected_model.get_untracked();
+
+        if text.trim().is_empty() || cid.is_empty() || model.is_empty() {
+            return;
+        }
+
+        // Generate message_id if we don't have one yet
+        let mid = current_message_id.get_untracked().unwrap_or_else(|| {
+            let new_mid = Uuid::new_v4().to_string();
+            current_message_id.set(Some(new_mid.clone()));
+            new_mid
+        });
+
+        // Clear existing timeout
+        if let Some(timeout_id) = draft_timeout_clone.borrow_mut().take() {
+            let window = web_sys::window().expect("no window");
+            window.clear_timeout_with_handle(timeout_id);
+        }
+
+        // Set new debounced timeout (500ms)
+        let window = web_sys::window().expect("no window");
+        let cb = wasm_bindgen::closure::Closure::once(move || {
+            spawn_local(async move {
+                let _ = chat_service::save_draft(&cid, &mid, &text, &model).await;
+            });
+        });
+        let timeout_id = window
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                cb.as_ref().unchecked_ref(),
+                500,
+            )
+            .expect("failed to set timeout");
+        cb.forget();
+        *draft_timeout_clone.borrow_mut() = Some(timeout_id);
     });
 
     let on_send = move || {
@@ -156,11 +223,25 @@ pub fn ChatPage() -> impl IntoView {
             return;
         }
 
+        // Cancel any pending draft timeout
+        if let Some(timeout_id) = draft_timeout.borrow_mut().take() {
+            let window = web_sys::window().expect("no window");
+            window.clear_timeout_with_handle(timeout_id);
+        }
+
         sending.set(true);
         error_msg.set(None);
 
+        // Use existing message_id or generate one
+        let message_id = current_message_id
+            .get_untracked()
+            .unwrap_or_else(|| Uuid::new_v4().to_string());
+
+        // Reset current_message_id for next message
+        current_message_id.set(None);
+
         let user_bubble = MessageBubble {
-            id: format!("user-{}", js_sys::Date::now()),
+            id: message_id.clone(),
             role: "User".to_string(),
             content: create_rw_signal(text.clone()),
             reasoning: create_rw_signal(None),
@@ -177,34 +258,20 @@ pub fn ChatPage() -> impl IntoView {
             let sending = sending;
             async move {
                 let cid = chat_id.get_untracked();
-                let cid = if cid.is_empty() {
-                    match chat_service::create_chat(&model).await {
-                        Ok(resp) => {
-                            chat_id.set(resp.chat_id.clone());
-                            let navigate = use_navigate();
-                            navigate(
-                                &format!("/chat/{}", resp.chat_id),
-                                NavigateOptions {
-                                    replace: true,
-                                    ..Default::default()
-                                },
-                            );
-                            resp.chat_id
-                        }
-                        Err(e) => {
-                            error_msg.set(Some(format!("Failed to create chat: {}", e)));
-                            sending.set(false);
-                            return;
-                        }
-                    }
-                } else {
-                    cid
-                };
 
-                match chat_service::send_message(&cid, &text, &model).await {
+                // Save draft first (in case debounce didn't fire yet)
+                if let Err(e) =
+                    chat_service::save_draft(&cid, &message_id, &text, &model).await
+                {
+                    error_msg.set(Some(format!("Failed to save draft: {}", e)));
+                    sending.set(false);
+                    return;
+                }
+
+                match chat_service::send_message(&cid, &message_id, &model).await {
                     Ok(resp) => {
                         let assistant_bubble = MessageBubble {
-                            id: resp.message_id,
+                            id: resp.assistant_message_id,
                             role: "Assistant".to_string(),
                             content: create_rw_signal(String::new()),
                             reasoning: create_rw_signal(None),

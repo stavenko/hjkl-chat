@@ -2,6 +2,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub type UserId = Uuid;
+pub type ChatId = Uuid;
+pub type MessageId = Uuid;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MessageRole {
     User,
@@ -10,7 +14,7 @@ pub enum MessageRole {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
-    pub id: Uuid,
+    pub id: MessageId,
     pub role: MessageRole,
     pub content: String,
     pub reasoning: Option<String>,
@@ -19,8 +23,8 @@ pub struct ChatMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chat {
-    pub id: Uuid,
-    pub user_id: Uuid,
+    pub id: ChatId,
+    pub user_id: UserId,
     pub title: String,
     pub model: String,
     pub created_at: DateTime<Utc>,
@@ -29,7 +33,7 @@ pub struct Chat {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatSummary {
-    pub id: Uuid,
+    pub id: ChatId,
     pub title: String,
     pub model: String,
     pub created_at: DateTime<Utc>,

@@ -1,4 +1,4 @@
-use crate::config::LlmConfig;
+use crate::config::PipesConfig;
 use crate::models::chat::ChatMessage;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -22,67 +22,29 @@ pub struct ModelInfo {
     pub name: String,
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum LlmError {
-    #[error("HTTP request error: {0}")]
-    Http(String),
-    #[error("Model list parse error: {0}")]
-    Parse(String),
-    #[error("Execution error: {0}")]
-    Execution(String),
-}
-
-pub type LlmResult<T> = Result<T, LlmError>;
-
-#[derive(Debug, Clone, Deserialize)]
-struct OpenAiModelsResponse {
-    data: Vec<OpenAiModel>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-struct OpenAiModel {
-    id: String,
-}
-
-pub struct LlmProvider {
-    config: LlmConfig,
+pub struct PipesProvider {
+    config: PipesConfig,
     http_client: reqwest::Client,
 }
 
-impl LlmProvider {
-    pub fn new(config: LlmConfig) -> Self {
-        LlmProvider {
+impl PipesProvider {
+    pub fn new(config: PipesConfig) -> Self {
+        let _ = &config;
+        PipesProvider {
             config,
             http_client: reqwest::Client::new(),
         }
     }
 
-    pub async fn list_models(&self) -> LlmResult<Vec<ModelInfo>> {
-        let mut req = self.http_client.get(&self.config.models_url);
-        if let Some(ref key) = self.config.api_key {
-            if !key.is_empty() {
-                req = req.header("Authorization", format!("Bearer {}", key));
-            }
-        }
-
-        let response = req
-            .send()
-            .await
-            .map_err(|e| LlmError::Http(e.to_string()))?;
-
-        let models_resp: OpenAiModelsResponse = response
-            .json()
-            .await
-            .map_err(|e| LlmError::Parse(e.to_string()))?;
-
-        Ok(models_resp
-            .data
-            .into_iter()
+    pub fn list_models(&self) -> Vec<ModelInfo> {
+        self.config
+            .models
+            .iter()
             .map(|m| ModelInfo {
-                name: m.id.clone(),
-                id: m.id,
+                id: m.id.clone(),
+                name: m.name.clone(),
             })
-            .collect())
+            .collect()
     }
 
     pub fn execute_prompt(
@@ -96,6 +58,7 @@ impl LlmProvider {
         let api_key = self.config.api_key.clone();
         let model = model.to_string();
         let messages = messages.to_vec();
+        let _ = &self.http_client;
 
         let executor = arti_pipes::llm_executors::GptOss::builder()
             .api_base(&api_base_url)
@@ -107,7 +70,12 @@ impl LlmProvider {
         let prompt_text = build_prompt_text(&messages);
 
         tokio::spawn(async move {
-            let result = match arti_pipes::executor::PromptExecutor::execute_raw(&executor, prompt_text).await {
+            let result = match arti_pipes::executor::PromptExecutor::execute_raw(
+                &executor,
+                prompt_text,
+            )
+            .await
+            {
                 Ok(r) => r,
                 Err(e) => {
                     eprintln!("LLM execution error: {:?}", e);

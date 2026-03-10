@@ -10,14 +10,20 @@ pub struct Config {
     pub s3: S3Config,
     pub local_fs: LocalFsConfig,
     pub smtp: SmtpConfig,
-    pub llm: LlmConfig,
+    pub pipes: PipesConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LlmConfig {
-    pub models_url: String,
+pub struct PipesConfig {
     pub api_base_url: String,
     pub api_key: Option<String>,
+    pub models: Vec<PipesModelConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PipesModelConfig {
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,6 +1,8 @@
 pub mod chat_storage;
-pub mod llm;
 pub mod local_filesystem;
+pub mod personalized_chat_storage;
+pub mod personalized_file_storage;
+pub mod pipes;
 pub mod s3;
 pub mod smtp;
 pub mod sqlite;

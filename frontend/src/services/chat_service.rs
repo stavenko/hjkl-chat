@@ -144,7 +144,7 @@ pub async fn save_draft(
     model: &str,
 ) -> Result<SaveDraftResponse, String> {
     post_json(
-        &format!("/api/chat/{}/save_draft", chat_id),
+        &format!("/api/chat/{}/save-draft", chat_id),
         &SaveDraftRequest {
             message_id: message_id.to_string(),
             content: content.to_string(),

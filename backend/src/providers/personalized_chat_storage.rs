@@ -2,7 +2,7 @@ use actix_web::{FromRequest, HttpRequest};
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::models::chat::{ChatId, ChatSummary};
+use crate::models::chat::{ChatId, ChatMeta, ChatSummary};
 use crate::providers::chat_storage::{ChatStorage, ChatStorageError};
 use crate::providers::personalized_file_storage::PersonalizedFileStorage;
 
@@ -24,15 +24,15 @@ impl PersonalizedChatStorage {
 
         let mut summaries = Vec::new();
         for key in &keys {
-            if key.ends_with("/chat.yaml") {
+            if key.ends_with("/chat-meta.yaml") {
                 let data = self
                     .file_storage
                     .get(key)
                     .await
                     .map_err(ChatStorageError::S3)?;
                 let yaml_str = String::from_utf8(data)?;
-                let chat: crate::models::chat::Chat = serde_yaml::from_str(&yaml_str)?;
-                summaries.push(ChatSummary::from(&chat));
+                let meta: ChatMeta = serde_yaml::from_str(&yaml_str)?;
+                summaries.push(ChatSummary::from(&meta));
             }
         }
 

@@ -32,9 +32,6 @@ pub struct ChatIndex {
 /// Stored in chats/{chat_id}/chat-meta.yaml — metadata for listing
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMeta {
-    pub id: ChatId,
-    pub user_id: UserId,
-    pub model: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -43,14 +40,4 @@ pub struct ChatSummary {
     pub id: ChatId,
     pub model: String,
     pub created_at: DateTime<Utc>,
-}
-
-impl From<&ChatMeta> for ChatSummary {
-    fn from(meta: &ChatMeta) -> Self {
-        ChatSummary {
-            id: meta.id,
-            model: meta.model.clone(),
-            created_at: meta.created_at,
-        }
-    }
 }

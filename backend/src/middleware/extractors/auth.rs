@@ -17,21 +17,7 @@ impl FromRequest for AuthenticatedUser {
     type Future = Pin<Box<dyn Future<Output = Result<Self, Self::Error>>>>;
 
     fn from_request(req: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
-        let token = extract_bearer_token(req)
-            .or_else(|| {
-                req.uri()
-                    .query()
-                    .and_then(|q| {
-                        q.split('&')
-                            .find_map(|pair| {
-                                let mut parts = pair.splitn(2, '=');
-                                match (parts.next(), parts.next()) {
-                                    (Some("token"), Some(val)) => Some(val.to_string()),
-                                    _ => None,
-                                }
-                            })
-                    })
-            });
+        let token = extract_bearer_token(req);
 
         let sqlite = req.app_data::<web::Data<Arc<SQLiteProvider>>>().cloned();
 

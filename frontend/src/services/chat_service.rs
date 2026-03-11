@@ -155,6 +155,19 @@ pub async fn save_draft(
 }
 
 #[derive(Deserialize)]
+pub struct GetDraftResponse {
+    pub status: String,
+    pub draft: ChatMessage,
+}
+
+pub async fn get_draft(
+    chat_id: &str,
+    message_id: &str,
+) -> Result<GetDraftResponse, String> {
+    get_json(&format!("/api/chat/{}/draft?message_id={}", chat_id, message_id)).await
+}
+
+#[derive(Deserialize)]
 pub struct GetChatMessagesResponse {
     pub status: String,
     pub messages: Vec<ChatMessage>,

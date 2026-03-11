@@ -8,6 +8,7 @@ pub mod auth_restore_complete;
 pub mod auth_restore_init;
 pub mod auth_restore_verify;
 pub mod auth_update_profile;
+pub mod chat_get_draft;
 pub mod chat_get_messages;
 pub mod chat_list;
 pub mod chat_models;

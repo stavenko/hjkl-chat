@@ -74,9 +74,6 @@ impl ChatStorage {
             self.file_storage.put(&index_path, yaml.as_bytes()).await?;
 
             let meta = ChatMeta {
-                id: self.chat_id,
-                user_id: self.file_storage.user_id(),
-                model: model.to_string(),
                 created_at: Utc::now(),
             };
             let meta_yaml = serde_yaml::to_string(&meta)?;
@@ -103,6 +100,20 @@ impl ChatStorage {
         let path = self.draft_path(&message_id);
         self.file_storage.put(&path, yaml.as_bytes()).await?;
         Ok(())
+    }
+
+    pub async fn get_draft(
+        &self,
+        message_id: MessageId,
+    ) -> ChatStorageResult<ChatMessage> {
+        let path = self.draft_path(&message_id);
+        if !self.file_storage.exists(&path).await? {
+            return Err(ChatStorageError::DraftNotFound);
+        }
+        let data = self.file_storage.get(&path).await?;
+        let yaml_str = String::from_utf8(data)?;
+        let draft: ChatMessage = serde_yaml::from_str(&yaml_str)?;
+        Ok(draft)
     }
 
     pub async fn send_message(&self, message_id: MessageId) -> ChatStorageResult<ChatMessage> {

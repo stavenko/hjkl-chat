@@ -1,8 +1,9 @@
 use actix_web::{FromRequest, HttpRequest};
 use std::future::Future;
 use std::pin::Pin;
+use uuid::Uuid;
 
-use crate::models::chat::{ChatId, ChatMeta, ChatSummary};
+use crate::models::chat::{ChatId, ChatIndex, ChatMeta, ChatSummary};
 use crate::providers::chat_storage::{ChatStorage, ChatStorageError};
 use crate::providers::personalized_file_storage::PersonalizedFileStorage;
 
@@ -25,14 +26,37 @@ impl PersonalizedChatStorage {
         let mut summaries = Vec::new();
         for key in &keys {
             if key.ends_with("/chat-meta.yaml") {
-                let data = self
+                // Extract chat_id from path: chats/{chat_id}/chat-meta.yaml
+                let chat_id = key
+                    .strip_prefix("chats/")
+                    .and_then(|s| s.strip_suffix("/chat-meta.yaml"))
+                    .and_then(|s| Uuid::parse_str(s).ok());
+
+                let chat_id = match chat_id {
+                    Some(id) => id,
+                    None => continue,
+                };
+
+                let meta_data = self
                     .file_storage
                     .get(key)
                     .await
                     .map_err(ChatStorageError::S3)?;
-                let yaml_str = String::from_utf8(data)?;
-                let meta: ChatMeta = serde_yaml::from_str(&yaml_str)?;
-                summaries.push(ChatSummary::from(&meta));
+                let meta: ChatMeta = serde_yaml::from_str(&String::from_utf8(meta_data)?)?;
+
+                let index_key = format!("chats/{}/chat.yaml", chat_id);
+                let index_data = self
+                    .file_storage
+                    .get(&index_key)
+                    .await
+                    .map_err(ChatStorageError::S3)?;
+                let index: ChatIndex = serde_yaml::from_str(&String::from_utf8(index_data)?)?;
+
+                summaries.push(ChatSummary {
+                    id: chat_id,
+                    model: index.model,
+                    created_at: meta.created_at,
+                });
             }
         }
 

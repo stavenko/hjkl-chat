@@ -5,7 +5,8 @@ use std::rc::Rc;
 use uuid::Uuid;
 use wasm_bindgen::JsCast;
 
-use crate::components::{ChatBubble, ChatInput, ModelSelector};
+use crate::components::icons::IconMenu;
+use crate::components::{ChatBackground, ChatBubble, ChatInput, ModelSelector, ProfileModal, UserIcon};
 use crate::services::{auth_service, chat_service, ws_service};
 
 #[derive(Clone)]
@@ -61,6 +62,21 @@ pub fn ChatPage() -> impl IntoView {
     let ws_conn: Rc<RefCell<Option<ws_service::WsConnection>>> = Rc::new(RefCell::new(None));
     let current_message_id: RwSignal<Option<String>> = create_rw_signal(None);
     let draft_timeout: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(None));
+    let profile_open = create_rw_signal(false);
+    let user_name = create_rw_signal(String::new());
+
+    // Load user info for the avatar
+    spawn_local({
+        let user_name = user_name;
+        async move {
+            if let Ok(me) = auth_service::get_me().await {
+                let display = me.nickname
+                    .or(me.name)
+                    .unwrap_or_else(|| me.emails.first().map(|e| e.email.clone()).unwrap_or_default());
+                user_name.set(display);
+            }
+        }
+    });
 
     // Load models on mount
     spawn_local({
@@ -133,7 +149,6 @@ pub fn ChatPage() -> impl IntoView {
     }
 
     // Initialize chat_id and load existing messages
-    // (no-ID case is handled by the early return above)
     spawn_local({
         let params = params;
         let chat_id = chat_id;
@@ -174,20 +189,17 @@ pub fn ChatPage() -> impl IntoView {
             return;
         }
 
-        // Generate message_id if we don't have one yet
         let mid = current_message_id.get_untracked().unwrap_or_else(|| {
             let new_mid = Uuid::new_v4().to_string();
             current_message_id.set(Some(new_mid.clone()));
             new_mid
         });
 
-        // Clear existing timeout
         if let Some(timeout_id) = draft_timeout_clone.borrow_mut().take() {
             let window = web_sys::window().expect("no window");
             window.clear_timeout_with_handle(timeout_id);
         }
 
-        // Set new debounced timeout (500ms)
         let window = web_sys::window().expect("no window");
         let cb = wasm_bindgen::closure::Closure::once(move || {
             spawn_local(async move {
@@ -216,7 +228,6 @@ pub fn ChatPage() -> impl IntoView {
             return;
         }
 
-        // Cancel any pending draft timeout
         if let Some(timeout_id) = draft_timeout.borrow_mut().take() {
             let window = web_sys::window().expect("no window");
             window.clear_timeout_with_handle(timeout_id);
@@ -225,12 +236,10 @@ pub fn ChatPage() -> impl IntoView {
         sending.set(true);
         error_msg.set(None);
 
-        // Use existing message_id or generate one
         let message_id = current_message_id
             .get_untracked()
             .unwrap_or_else(|| Uuid::new_v4().to_string());
 
-        // Reset current_message_id for next message
         current_message_id.set(None);
 
         let user_bubble = MessageBubble {
@@ -252,7 +261,6 @@ pub fn ChatPage() -> impl IntoView {
             async move {
                 let cid = chat_id.get_untracked();
 
-                // Save draft first (in case debounce didn't fire yet)
                 if let Err(e) =
                     chat_service::save_draft(&cid, &message_id, &text, &model).await
                 {
@@ -291,48 +299,76 @@ pub fn ChatPage() -> impl IntoView {
 
     view! {
         <div class="chat-page">
+            // Fade overlays — above messages, below floating UI
+            <div class="chat-page__fade-top"></div>
+            <div class="chat-page__fade-bottom"></div>
+
+            // Fixed gradient
+            <ChatBackground/>
+
+            // Scrollable messages area
+            <div class="chat-page__wallpaper">
+                <div class="chat-messages">
+                    <For
+                        each=move || messages.get()
+                        key=|m| m.id.clone()
+                        children=move |m| {
+                            let role = m.role.clone();
+                            let content = Signal::derive(move || m.content.get());
+                            let reasoning = Signal::derive(move || m.reasoning.get());
+                            view! {
+                                <ChatBubble
+                                    role=role
+                                    content=content
+                                    reasoning=reasoning
+                                />
+                            }
+                        }
+                    />
+                </div>
+            </div>
+
+            // Floating header bar
             <div class="chat-page__header">
+                <UserIcon
+                    label=Signal::derive(move || user_name.get())
+                    on_click=Box::new(move || profile_open.set(true))
+                />
+                <div class="chat-page__header-title">
+                    <span>"Chat"</span>
+                    {move || (!ws_connected.get()).then(|| view! {
+                        <span class="chat-page__header-disconnected">"Disconnected"</span>
+                    })}
+                </div>
+                <button class="chat-page__menu-btn" title="Menu">
+                    <IconMenu/>
+                </button>
+            </div>
+
+            // Model selector below avatar
+            <div class="chat-page__model-bar">
                 <ModelSelector
                     models=Signal::derive(move || models.get())
                     selected=selected_model
                 />
-                <div class="chat-page__status">
-                    {move || if ws_connected.get() {
-                        view! { <span class="chat-page__status--connected">"Connected"</span> }.into_view()
-                    } else {
-                        view! { <span class="chat-page__status--disconnected">"Disconnected"</span> }.into_view()
-                    }}
-                </div>
             </div>
 
+            // Error banner
             {move || error_msg.get().map(|msg| {
                 view! { <div class="chat-page__error">{msg}</div> }
             })}
 
-            <div class="chat-messages">
-                <For
-                    each=move || messages.get()
-                    key=|m| m.id.clone()
-                    children=move |m| {
-                        let role = m.role.clone();
-                        let content = Signal::derive(move || m.content.get());
-                        let reasoning = Signal::derive(move || m.reasoning.get());
-                        view! {
-                            <ChatBubble
-                                role=role
-                                content=content
-                                reasoning=reasoning
-                            />
-                        }
-                    }
+            // Floating input bar
+            <div class="chat-page__footer">
+                <ChatInput
+                    value=input_text
+                    disabled=MaybeSignal::derive(move || sending.get())
+                    on_send=on_send
                 />
             </div>
 
-            <ChatInput
-                value=input_text
-                disabled=MaybeSignal::derive(move || sending.get())
-                on_send=on_send
-            />
+            // Profile modal
+            <ProfileModal open=profile_open/>
         </div>
     }
     .into_view()

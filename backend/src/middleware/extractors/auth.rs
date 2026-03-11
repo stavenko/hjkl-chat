@@ -62,4 +62,13 @@ fn extract_bearer_token(req: &HttpRequest) -> Option<String> {
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
         .map(|s| s.to_string())
+        .or_else(|| {
+            // Fallback to query parameter for WebSocket connections,
+            // since browser WebSocket API cannot set custom headers.
+            let query = web::Query::<std::collections::HashMap<String, String>>::from_query(
+                req.query_string(),
+            )
+            .ok()?;
+            query.get("token").cloned()
+        })
 }

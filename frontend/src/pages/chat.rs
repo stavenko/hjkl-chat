@@ -64,6 +64,13 @@ pub fn ChatPage() -> impl IntoView {
     let draft_timeout: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(None));
     let profile_open = create_rw_signal(false);
     let user_name = create_rw_signal(String::new());
+    let wallpaper_ref = create_node_ref::<html::Div>();
+
+    let scroll_to_bottom = move || {
+        if let Some(el) = wallpaper_ref.get() {
+            el.set_scroll_top(el.scroll_height());
+        }
+    };
 
     // Load user info for the avatar
     spawn_local({
@@ -170,6 +177,8 @@ pub fn ChatPage() -> impl IntoView {
                         })
                         .collect();
                     messages.set(bubbles);
+                    // Scroll to bottom after loading messages
+                    request_animation_frame(scroll_to_bottom);
                 }
                 Err(_e) => {
                     // Chat might not exist yet, that's ok for new chats
@@ -250,6 +259,7 @@ pub fn ChatPage() -> impl IntoView {
         };
         messages.update(|m| m.push(user_bubble));
         input_text.set(String::new());
+        request_animation_frame(scroll_to_bottom);
 
         spawn_local({
             let chat_id = chat_id;
@@ -278,6 +288,7 @@ pub fn ChatPage() -> impl IntoView {
                             reasoning: create_rw_signal(None),
                         };
                         messages.update(|m| m.push(assistant_bubble));
+                        request_animation_frame(scroll_to_bottom);
                     }
                     Err(e) => {
                         error_msg.set(Some(format!("Failed to send message: {}", e)));
@@ -307,7 +318,7 @@ pub fn ChatPage() -> impl IntoView {
             <ChatBackground/>
 
             // Scrollable messages area
-            <div class="chat-page__wallpaper">
+            <div class="chat-page__wallpaper" node_ref=wallpaper_ref>
                 <div class="chat-messages">
                     <For
                         each=move || messages.get()

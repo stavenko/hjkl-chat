@@ -39,6 +39,7 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   /* Stroke width */
@@ -53,6 +54,13 @@
   --size-button-height: 44px;
   --size-strength-bar-height: 6px;
   --size-form-max-width: 400px;
+
+  /* Chat */
+  --size-user-icon: 56px;
+  --size-chat-max-width: 900px;
+  --size-chat-header-height: 56px;
+  --size-chat-model-bar-height: 80px;
+  --size-chat-footer-height: 64px;
 
   /* Opacity */
   --opacity-disabled: 0.5;
@@ -153,10 +161,24 @@
   --color-fb-project-active: #eef2ff;
   --color-fb-project-inactive: #ffffff;
 
+  /* Chat */
+  --color-chat-wallpaper: #e8e0d8;
+  --color-chat-wallpaper-pattern: #ddd5cc;
+  --color-chat-bubble-user: #007bff;
+  --color-chat-bubble-user-text: #ffffff;
+  --color-chat-bubble-assistant: #ffffff;
+  --color-chat-bubble-assistant-text: #333333;
+  --color-chat-bubble-assistant-border: #e0e0e0;
+  --color-chat-header-bg: rgba(255, 255, 255, 0.92);
+  --color-chat-footer-bg: rgba(255, 255, 255, 0.92);
+  --color-user-icon-bg: #007bff;
+  --color-user-icon-text: #ffffff;
+
   /* Shadows */
   --shadow-card: 4px 4px 3px 0 #0000001a;
   --shadow-card-hover: 0 4px 6px -1px #00000026;
   --shadow-input-focus: 0 0 0 3px #007bff40;
+  --shadow-float: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* ===== Dark theme ===== */
@@ -209,8 +231,22 @@
   --color-fb-project-active: #1e1b4b;
   --color-fb-project-inactive: #1f2937;
 
+  /* Chat */
+  --color-chat-wallpaper: #1a1a2e;
+  --color-chat-wallpaper-pattern: #222240;
+  --color-chat-bubble-user: #0066dd;
+  --color-chat-bubble-user-text: #ffffff;
+  --color-chat-bubble-assistant: #2a2a3e;
+  --color-chat-bubble-assistant-text: #f5f5f5;
+  --color-chat-bubble-assistant-border: #3a3a50;
+  --color-chat-header-bg: rgba(31, 41, 55, 0.92);
+  --color-chat-footer-bg: rgba(31, 41, 55, 0.92);
+  --color-user-icon-bg: #0066dd;
+  --color-user-icon-text: #ffffff;
+
   /* Shadows */
   --shadow-card: 4px 4px 3px 0 #00000066;
   --shadow-card-hover: 0 4px 6px -1px #00000080;
   --shadow-input-focus: 0 0 0 3px #007bff66;
+  --shadow-float: 0 2px 12px rgba(0, 0, 0, 0.3);
 }

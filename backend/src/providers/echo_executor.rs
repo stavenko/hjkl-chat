@@ -1,5 +1,5 @@
 use arti_pipes::executor::{ExecutionResult, Output, OutputMetadata, PromptExecutor, Token, TokenStream};
-use futures::stream;
+use async_stream::stream;
 
 #[derive(Clone)]
 pub struct EchoExecutor;
@@ -11,23 +11,22 @@ impl PromptExecutor for EchoExecutor {
     ) -> arti_pipes::error::Result<ExecutionResult<String>> {
         let echo_text = prompt.clone();
 
-        let content_stream: TokenStream = Box::pin(stream::iter(
-            echo_text
-                .chars()
-                .collect::<Vec<_>>()
-                .chunks(4)
-                .enumerate()
-                .map(|(i, chunk)| {
-                    let text: String = chunk.iter().collect();
-                    Ok(Token {
-                        content: text,
-                        index: i,
-                    })
-                })
-                .collect::<Vec<_>>(),
-        ));
+        let chunks: Vec<(usize, String)> = echo_text
+            .chars()
+            .collect::<Vec<_>>()
+            .chunks(4)
+            .enumerate()
+            .map(|(i, chunk)| (i, chunk.iter().collect()))
+            .collect();
 
-        let thinking_stream: TokenStream = Box::pin(stream::empty());
+        let content_stream: TokenStream = Box::pin(stream! {
+            for (i, text) in chunks {
+                tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+                yield Ok(Token { content: text, index: i });
+            }
+        });
+
+        let thinking_stream: TokenStream = Box::pin(futures::stream::empty());
 
         let output_text = echo_text.clone();
         let output = tokio::spawn(async move {

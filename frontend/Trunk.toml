@@ -10,7 +10,7 @@ backend = "http://127.0.0.1:3001/api/"
 
 [[proxy]]
 rewrite = "/api/ws"
-backend = "ws://localhost:5003/api/ws"
+backend = "ws://localhost:3001/api/ws"
 ws = true
 
 [[proxy]]

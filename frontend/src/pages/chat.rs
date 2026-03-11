@@ -31,6 +31,25 @@ pub fn ChatPage() -> impl IntoView {
     }
 
     let params = use_params_map();
+
+    // If no chat ID in URL, generate one and redirect before creating any signals
+    {
+        let p = params.get_untracked();
+        let id_param = p.get("id").cloned().unwrap_or_default();
+        if id_param.is_empty() {
+            let new_id = Uuid::new_v4().to_string();
+            let navigate = use_navigate();
+            navigate(
+                &format!("/chat/{}", new_id),
+                NavigateOptions {
+                    replace: true,
+                    ..Default::default()
+                },
+            );
+            return view! { <div/> }.into_view();
+        }
+    }
+
     let chat_id = create_rw_signal(String::new());
     let messages: RwSignal<Vec<MessageBubble>> = create_rw_signal(Vec::new());
     let input_text = create_rw_signal(String::new());
@@ -114,58 +133,32 @@ pub fn ChatPage() -> impl IntoView {
     }
 
     // Initialize chat_id and load existing messages
+    // (no-ID case is handled by the early return above)
     spawn_local({
         let params = params;
         let chat_id = chat_id;
         let messages = messages;
         async move {
             let p = params.get_untracked();
-            if let Some(id) = p.get("id") {
-                if !id.is_empty() {
-                    chat_id.set(id.clone());
-                    match chat_service::get_chat_messages(id, None).await {
-                        Ok(resp) => {
-                            let bubbles: Vec<MessageBubble> = resp
-                                .messages
-                                .into_iter()
-                                .map(|m| MessageBubble {
-                                    id: m.id,
-                                    role: m.role,
-                                    content: create_rw_signal(m.content),
-                                    reasoning: create_rw_signal(m.reasoning),
-                                })
-                                .collect();
-                            messages.set(bubbles);
-                        }
-                        Err(_e) => {
-                            // Chat might not exist yet, that's ok for new chats
-                        }
-                    }
-                } else {
-                    // No id param — generate a new chat_id and navigate
-                    let new_id = Uuid::new_v4().to_string();
-                    chat_id.set(new_id.clone());
-                    let navigate = use_navigate();
-                    navigate(
-                        &format!("/chat/{}", new_id),
-                        NavigateOptions {
-                            replace: true,
-                            ..Default::default()
-                        },
-                    );
+            let id = p.get("id").expect("id param must exist at this point");
+            chat_id.set(id.clone());
+            match chat_service::get_chat_messages(id, None).await {
+                Ok(resp) => {
+                    let bubbles: Vec<MessageBubble> = resp
+                        .messages
+                        .into_iter()
+                        .map(|m| MessageBubble {
+                            id: m.id,
+                            role: m.role,
+                            content: create_rw_signal(m.content),
+                            reasoning: create_rw_signal(m.reasoning),
+                        })
+                        .collect();
+                    messages.set(bubbles);
                 }
-            } else {
-                // No :id route param at all — generate and navigate
-                let new_id = Uuid::new_v4().to_string();
-                chat_id.set(new_id.clone());
-                let navigate = use_navigate();
-                navigate(
-                    &format!("/chat/{}", new_id),
-                    NavigateOptions {
-                        replace: true,
-                        ..Default::default()
-                    },
-                );
+                Err(_e) => {
+                    // Chat might not exist yet, that's ok for new chats
+                }
             }
         }
     });

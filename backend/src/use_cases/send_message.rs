@@ -52,6 +52,10 @@ pub async fn command(
     let _model = input.model;
 
     tokio::spawn(async move {
+        // Allow the HTTP response to reach the client before streaming tokens,
+        // so the client can set up the assistant message bubble first.
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
         let executor = EchoExecutor;
         let prompt_text = build_prompt_text(&messages);
 

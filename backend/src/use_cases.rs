@@ -1,5 +1,6 @@
 pub mod change_password;
 pub mod get_chat_messages;
+pub mod get_draft;
 pub mod get_profile;
 pub mod list_chats;
 pub mod list_models;

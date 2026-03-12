@@ -5,6 +5,10 @@ use std::rc::Rc;
 use uuid::Uuid;
 use wasm_bindgen::JsCast;
 
+fn now_iso() -> String {
+    js_sys::Date::new_0().to_iso_string().as_string().unwrap_or_default()
+}
+
 use crate::components::icons::IconMenu;
 use crate::components::{ChatBackground, ChatBubble, ChatInput, ModelSelector, ProfileModal, UserIcon};
 use crate::services::local_storage::{LocalChatMessage, LocalDb, LocalDraftEntry};
@@ -242,7 +246,7 @@ pub fn ChatPage() -> impl IntoView {
                                         role: bubble.role.clone(),
                                         content: bubble.content.get_untracked(),
                                         reasoning: bubble.reasoning.get_untracked(),
-                                        created_at: String::new(),
+                                        created_at: now_iso(),
                                         version: 0,
                                     };
                                     let db = db.clone();
@@ -426,7 +430,7 @@ pub fn ChatPage() -> impl IntoView {
                         role: "User".to_string(),
                         content: text.clone(),
                         reasoning: None,
-                        created_at: String::new(),
+                        created_at: now_iso(),
                         version: 0,
                     };
                     let _ = db.put_message(&local_msg).await;

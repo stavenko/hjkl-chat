@@ -65,7 +65,17 @@
       "Bash(git merge:*)",
       "Bash(git rebase:*)",
       "Bash(git stash:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(gh pr create:*)",
+      "Bash(gh api:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(open:*)",
+      "mcp__chrome-devtools__get_network_request",
+      "Bash(kill:*)",
+      "mcp__chrome-devtools__wait_for"
     ]
   }
 }

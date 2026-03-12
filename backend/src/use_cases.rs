@@ -1,6 +1,4 @@
 pub mod change_password;
-pub mod get_chat_messages;
-pub mod get_draft;
 pub mod get_profile;
 pub mod list_chats;
 pub mod list_models;
@@ -11,7 +9,6 @@ pub mod registration_verify;
 pub mod restore_complete;
 pub mod restore_init;
 pub mod restore_verify;
-pub mod save_draft;
 pub mod send_message;
 pub mod sync_pull;
 pub mod sync_push;

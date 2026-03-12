@@ -63,6 +63,41 @@ async fn create_app_with_authenticated_user() -> anyhow::Result<(
     Ok((details, app, AuthenticatedUser { token, user_id }))
 }
 
+/// Helper: push a draft via sync/push and return the new version
+async fn push_draft(
+    app: &impl Service<
+        actix_http::Request,
+        Response = actix_web::dev::ServiceResponse<impl actix_web::body::MessageBody>,
+        Error = actix_web::Error,
+    >,
+    token: &str,
+    chat_id: &Uuid,
+    message_id: &Uuid,
+    content: &str,
+    model: &str,
+    expected_version: u64,
+) -> u64 {
+    let req = TestRequest::post()
+        .uri("/api/sync/push")
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .set_json(json!({
+            "expected_version": expected_version,
+            "changes": [{
+                "entity_type": "Draft",
+                "entity_id": message_id.to_string(),
+                "chat_id": chat_id.to_string(),
+                "data": {"content": content, "model": model},
+                "action": "Created"
+            }]
+        }))
+        .to_request();
+    let resp = app.call(req).await.unwrap();
+    assert_eq!(resp.status(), 200);
+    let body: Value = actix_web::test::read_body_json(resp).await;
+    assert_eq!(body["status"], "ok");
+    body["new_version"].as_u64().unwrap()
+}
+
 // --- Sync Pull Tests ---
 
 #[actix_rt::test]
@@ -88,28 +123,15 @@ async fn test_sync_pull_empty_returns_version_zero() {
 }
 
 #[actix_rt::test]
-async fn test_sync_pull_returns_changes_after_save_draft() {
+async fn test_sync_pull_returns_changes_after_push() {
     let (_details, app, user) = create_app_with_authenticated_user().await.unwrap();
 
     let chat_id = Uuid::new_v4();
     let message_id = Uuid::new_v4();
 
-    // Save a draft first
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "Hello world",
-            "model": "test-model"
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 200);
-
-    let draft_body: Value = actix_web::test::read_body_json(resp).await;
-    assert_eq!(draft_body["status"], "ok");
-    assert!(draft_body["version"].as_u64().unwrap() > 0);
+    // Push a draft
+    let version = push_draft(&app, &user.token, &chat_id, &message_id, "Hello world", "test-model", 0).await;
+    assert!(version > 0);
 
     // Now pull from version 0 — should get changes
     let req = TestRequest::post()
@@ -126,7 +148,7 @@ async fn test_sync_pull_returns_changes_after_save_draft() {
     assert!(body["current_version"].as_u64().unwrap() > 0);
     assert!(!body["entries"].as_array().unwrap().is_empty());
 
-    // Should have a chat in data (created by save_draft)
+    // Should have a chat in data (created by push)
     assert!(!body["data"]["chats"].as_array().unwrap().is_empty());
 }
 
@@ -137,19 +159,8 @@ async fn test_sync_pull_since_current_returns_no_changes() {
     let chat_id = Uuid::new_v4();
     let message_id = Uuid::new_v4();
 
-    // Save a draft
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "Hello world",
-            "model": "test-model"
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    let draft_body: Value = actix_web::test::read_body_json(resp).await;
-    let current_version = draft_body["version"].as_u64().unwrap();
+    // Push a draft
+    let current_version = push_draft(&app, &user.token, &chat_id, &message_id, "Hello world", "test-model", 0).await;
 
     // Pull since current version — should get nothing new
     let req = TestRequest::post()
@@ -246,147 +257,17 @@ async fn test_sync_push_version_conflict_returns_409() {
     assert_eq!(body["code"], "VersionConflict");
 }
 
-// --- Save Draft with Version Check ---
+// --- End-to-End: Push Draft → Send → Pull ---
 
 #[actix_rt::test]
-async fn test_save_draft_returns_version() {
+async fn test_full_flow_push_send_and_sync_pull() {
     let (_details, app, user) = create_app_with_authenticated_user().await.unwrap();
 
     let chat_id = Uuid::new_v4();
     let message_id = Uuid::new_v4();
 
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "Draft content",
-            "model": "test-model"
-        }))
-        .to_request();
-
-    let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 200);
-
-    let body: Value = actix_web::test::read_body_json(resp).await;
-    assert_eq!(body["status"], "ok");
-    assert!(body["version"].is_number());
-    assert!(body["version"].as_u64().unwrap() > 0);
-}
-
-#[actix_rt::test]
-async fn test_save_draft_with_correct_expected_version_succeeds() {
-    let (_details, app, user) = create_app_with_authenticated_user().await.unwrap();
-
-    let chat_id = Uuid::new_v4();
-    let message_id = Uuid::new_v4();
-
-    // First save without version check
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "v1",
-            "model": "test-model"
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    let body: Value = actix_web::test::read_body_json(resp).await;
-    let version = body["version"].as_u64().unwrap();
-
-    // Second save with correct expected_version
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "v2",
-            "model": "test-model",
-            "expected_version": version
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 200);
-
-    let body: Value = actix_web::test::read_body_json(resp).await;
-    assert_eq!(body["status"], "ok");
-    assert!(body["version"].as_u64().unwrap() > version);
-}
-
-#[actix_rt::test]
-async fn test_save_draft_with_stale_expected_version_returns_409() {
-    let (_details, app, user) = create_app_with_authenticated_user().await.unwrap();
-
-    let chat_id = Uuid::new_v4();
-    let message_id = Uuid::new_v4();
-
-    // First save
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "v1",
-            "model": "test-model"
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    let body: Value = actix_web::test::read_body_json(resp).await;
-    let version_v1 = body["version"].as_u64().unwrap();
-
-    // Second save (bumps version)
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "v2",
-            "model": "test-model"
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 200);
-
-    // Third save with v1's version — should conflict
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "v3 from stale client",
-            "model": "test-model",
-            "expected_version": version_v1
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 409);
-
-    let body: Value = actix_web::test::read_body_json(resp).await;
-    assert_eq!(body["code"], "VersionConflict");
-}
-
-// --- End-to-End: Draft → Send → Pull ---
-
-#[actix_rt::test]
-async fn test_full_flow_draft_send_and_sync_pull() {
-    let (_details, app, user) = create_app_with_authenticated_user().await.unwrap();
-
-    let chat_id = Uuid::new_v4();
-    let message_id = Uuid::new_v4();
-
-    // 1. Save draft
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": message_id,
-            "content": "Hello assistant",
-            "model": "test-model"
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 200);
+    // 1. Push draft via sync
+    push_draft(&app, &user.token, &chat_id, &message_id, "Hello assistant", "test-model", 0).await;
 
     // 2. Send message
     let req = TestRequest::post()
@@ -440,24 +321,17 @@ async fn test_versions_increment_monotonically() {
     let chat_id = Uuid::new_v4();
 
     let mut versions: Vec<u64> = Vec::new();
+    let mut current_version = 0u64;
 
-    // Save multiple drafts and track versions
+    // Push multiple drafts and track versions
     for i in 0..5 {
         let message_id = Uuid::new_v4();
-        let req = TestRequest::post()
-            .uri(&format!("/api/chat/{}/save-draft", chat_id))
-            .insert_header(("Authorization", format!("Bearer {}", user.token)))
-            .set_json(json!({
-                "message_id": message_id,
-                "content": format!("Draft {}", i),
-                "model": "test-model"
-            }))
-            .to_request();
-        let resp = app.call(req).await.unwrap();
-        assert_eq!(resp.status(), 200);
-
-        let body: Value = actix_web::test::read_body_json(resp).await;
-        versions.push(body["version"].as_u64().unwrap());
+        let version = push_draft(
+            &app, &user.token, &chat_id, &message_id,
+            &format!("Draft {}", i), "test-model", current_version,
+        ).await;
+        versions.push(version);
+        current_version = version;
     }
 
     // Each version should be strictly greater than the previous
@@ -559,34 +433,13 @@ async fn test_incremental_pull_only_returns_new_changes() {
 
     let chat_id = Uuid::new_v4();
 
-    // Save first draft
+    // Push first draft
     let msg1 = Uuid::new_v4();
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": msg1,
-            "content": "First draft",
-            "model": "test-model"
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    let body: Value = actix_web::test::read_body_json(resp).await;
-    let version_after_first = body["version"].as_u64().unwrap();
+    let version_after_first = push_draft(&app, &user.token, &chat_id, &msg1, "First draft", "test-model", 0).await;
 
-    // Save second draft
+    // Push second draft
     let msg2 = Uuid::new_v4();
-    let req = TestRequest::post()
-        .uri(&format!("/api/chat/{}/save-draft", chat_id))
-        .insert_header(("Authorization", format!("Bearer {}", user.token)))
-        .set_json(json!({
-            "message_id": msg2,
-            "content": "Second draft",
-            "model": "test-model"
-        }))
-        .to_request();
-    let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), 200);
+    push_draft(&app, &user.token, &chat_id, &msg2, "Second draft", "test-model", version_after_first).await;
 
     // Pull since version_after_first — should only get second draft's entries
     let req = TestRequest::post()

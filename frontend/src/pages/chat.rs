@@ -179,35 +179,13 @@ pub fn ChatPage() -> impl IntoView {
                             web_sys::console::warn_1(
                                 &format!("Sync pull failed, using local data: {}", e).into(),
                             );
-                            // Fall back to server API if sync fails and we have no local data
-                            if messages.get_untracked().is_empty() {
-                                load_from_server(id, &db, messages, scroll_to_bottom).await;
-                            }
                         }
                     }
                 }
                 Err(e) => {
-                    web_sys::console::warn_1(
-                        &format!("IndexedDB unavailable, falling back to server: {:?}", e).into(),
+                    web_sys::console::error_1(
+                        &format!("IndexedDB unavailable: {:?}", e).into(),
                     );
-                    // Fallback: load directly from server
-                    match chat_service::get_chat_messages(id, None).await {
-                        Ok(resp) => {
-                            let bubbles: Vec<MessageBubble> = resp
-                                .messages
-                                .into_iter()
-                                .map(|m| MessageBubble {
-                                    id: m.id,
-                                    role: m.role,
-                                    content: create_rw_signal(m.content),
-                                    reasoning: create_rw_signal(m.reasoning),
-                                })
-                                .collect();
-                            messages.set(bubbles);
-                            request_animation_frame(scroll_to_bottom);
-                        }
-                        Err(_) => {}
-                    }
                 }
             }
         }
@@ -346,8 +324,7 @@ pub fn ChatPage() -> impl IntoView {
                     let _ = db.put_draft(&draft).await;
                 }
 
-                // Then push to server in background
-                let _ = chat_service::save_draft(&cid, &mid, &text, &model).await;
+                // Draft stays in IndexedDB only — will be pushed on send
             });
         });
         let timeout_id = window
@@ -409,7 +386,29 @@ pub fn ChatPage() -> impl IntoView {
             async move {
                 let cid = chat_id.get_untracked();
 
-                // Save user message to IndexedDB
+                // Ensure draft is in IndexedDB before pushing
+                if let Some(ref db) = db_ref {
+                    let draft = LocalDraftEntry {
+                        id: message_id.clone(),
+                        chat_id: cid.clone(),
+                        content: text.clone(),
+                        model: model.clone(),
+                        version: 0,
+                    };
+                    let _ = db.put_draft(&draft).await;
+                }
+
+                // Push draft to server via sync before sending
+                if let Some(ref db) = db_ref {
+                    let engine = SyncEngine::new(db.clone());
+                    if let Err(e) = engine.push_drafts(&cid).await {
+                        error_msg.set(Some(format!("Failed to sync draft: {}", e)));
+                        sending.set(false);
+                        return;
+                    }
+                }
+
+                // Save user message to IndexedDB and remove draft
                 if let Some(ref db) = db_ref {
                     let local_msg = LocalChatMessage {
                         id: message_id.clone(),
@@ -421,17 +420,7 @@ pub fn ChatPage() -> impl IntoView {
                         version: 0,
                     };
                     let _ = db.put_message(&local_msg).await;
-                    // Remove draft from IndexedDB
                     let _ = db.delete_draft(&message_id).await;
-                }
-
-                // Save draft to server and send
-                if let Err(e) =
-                    chat_service::save_draft(&cid, &message_id, &text, &model).await
-                {
-                    error_msg.set(Some(format!("Failed to save draft: {}", e)));
-                    sending.set(false);
-                    return;
                 }
 
                 match chat_service::send_message(&cid, &message_id, &model).await {
@@ -549,46 +538,4 @@ pub fn ChatPage() -> impl IntoView {
         </div>
     }
     .into_view()
-}
-
-/// Fallback: load messages from server API and store in IndexedDB
-async fn load_from_server(
-    chat_id: &str,
-    db: &Rc<LocalDb>,
-    messages: RwSignal<Vec<MessageBubble>>,
-    scroll_to_bottom: impl Fn() + 'static,
-) {
-    match chat_service::get_chat_messages(chat_id, None).await {
-        Ok(resp) => {
-            // Store in IndexedDB
-            let local_msgs: Vec<LocalChatMessage> = resp
-                .messages
-                .iter()
-                .map(|m| LocalChatMessage {
-                    id: m.id.clone(),
-                    chat_id: chat_id.to_string(),
-                    role: m.role.clone(),
-                    content: m.content.clone(),
-                    reasoning: m.reasoning.clone(),
-                    created_at: m.created_at.clone(),
-                    version: 0,
-                })
-                .collect();
-            let _ = db.put_messages_bulk(&local_msgs).await;
-
-            let bubbles: Vec<MessageBubble> = resp
-                .messages
-                .into_iter()
-                .map(|m| MessageBubble {
-                    id: m.id,
-                    role: m.role,
-                    content: create_rw_signal(m.content),
-                    reasoning: create_rw_signal(m.reasoning),
-                })
-                .collect();
-            messages.set(bubbles);
-            request_animation_frame(scroll_to_bottom);
-        }
-        Err(_) => {}
-    }
 }

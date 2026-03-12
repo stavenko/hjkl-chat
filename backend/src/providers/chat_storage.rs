@@ -137,29 +137,6 @@ impl ChatStorage {
         Ok(version)
     }
 
-    /// Save draft with version check. Returns Err(VersionConflict) if expected_version
-    /// doesn't match the current server version.
-    pub async fn save_draft_versioned(
-        &self,
-        message_id: MessageId,
-        content: &str,
-        expected_version: u64,
-    ) -> ChatStorageResult<u64> {
-        let draft_path = self.draft_path(&message_id);
-        if self.file_storage.exists(&draft_path).await? {
-            let data = self.file_storage.get(&draft_path).await?;
-            let yaml_str = String::from_utf8(data)?;
-            let existing: ChatMessage = serde_yaml::from_str(&yaml_str)?;
-            if existing.version != expected_version {
-                return Err(ChatStorageError::VersionConflict {
-                    expected: expected_version,
-                    actual: existing.version,
-                });
-            }
-        }
-        self.save_draft(message_id, content).await
-    }
-
     pub async fn get_draft(&self, message_id: MessageId) -> ChatStorageResult<ChatMessage> {
         let path = self.draft_path(&message_id);
         if !self.file_storage.exists(&path).await? {

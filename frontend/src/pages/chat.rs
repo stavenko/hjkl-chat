@@ -7,6 +7,8 @@ use wasm_bindgen::JsCast;
 
 use crate::components::icons::IconMenu;
 use crate::components::{ChatBackground, ChatBubble, ChatInput, ModelSelector, ProfileModal, UserIcon};
+use crate::services::local_storage::{LocalChatMessage, LocalDb, LocalDraftEntry};
+use crate::services::sync_engine::SyncEngine;
 use crate::services::{auth_service, chat_service, ws_service};
 
 #[derive(Clone)]
@@ -65,6 +67,10 @@ pub fn ChatPage() -> impl IntoView {
     let profile_open = create_rw_signal(false);
     let user_name = create_rw_signal(String::new());
     let wallpaper_ref = create_node_ref::<html::Div>();
+    let sync_status = create_rw_signal(String::new());
+
+    // Shared LocalDb handle
+    let local_db: Rc<RefCell<Option<Rc<LocalDb>>>> = Rc::new(RefCell::new(None));
 
     let scroll_to_bottom = move || {
         if let Some(el) = wallpaper_ref.get() {
@@ -109,7 +115,106 @@ pub fn ChatPage() -> impl IntoView {
         }
     });
 
-    // Connect WebSocket
+    // Initialize LocalDB, load from IndexedDB first, then sync
+    let local_db_init = local_db.clone();
+    spawn_local({
+        let params = params;
+        let chat_id = chat_id;
+        let messages = messages;
+        let sync_status = sync_status;
+        async move {
+            let p = params.get_untracked();
+            let id = p.get("id").expect("id param must exist at this point");
+            chat_id.set(id.clone());
+
+            // Open IndexedDB
+            match LocalDb::open().await {
+                Ok(db) => {
+                    let db = Rc::new(db);
+                    *local_db_init.borrow_mut() = Some(db.clone());
+
+                    // Step 1: Load from IndexedDB (instant)
+                    match db.get_messages_for_chat(id).await {
+                        Ok(local_msgs) if !local_msgs.is_empty() => {
+                            let bubbles: Vec<MessageBubble> = local_msgs
+                                .into_iter()
+                                .map(|m| MessageBubble {
+                                    id: m.id,
+                                    role: m.role,
+                                    content: create_rw_signal(m.content),
+                                    reasoning: create_rw_signal(m.reasoning),
+                                })
+                                .collect();
+                            messages.set(bubbles);
+                            request_animation_frame(scroll_to_bottom);
+                        }
+                        _ => {}
+                    }
+
+                    // Step 2: Background sync pull from server
+                    sync_status.set("Syncing...".to_string());
+                    let engine = SyncEngine::new(db.clone());
+                    match engine.pull().await {
+                        Ok(had_changes) => {
+                            sync_status.set(String::new());
+                            if had_changes {
+                                // Reload messages from IndexedDB after sync
+                                if let Ok(local_msgs) = db.get_messages_for_chat(id).await {
+                                    let bubbles: Vec<MessageBubble> = local_msgs
+                                        .into_iter()
+                                        .map(|m| MessageBubble {
+                                            id: m.id,
+                                            role: m.role,
+                                            content: create_rw_signal(m.content),
+                                            reasoning: create_rw_signal(m.reasoning),
+                                        })
+                                        .collect();
+                                    messages.set(bubbles);
+                                    request_animation_frame(scroll_to_bottom);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            sync_status.set(String::new());
+                            web_sys::console::warn_1(
+                                &format!("Sync pull failed, using local data: {}", e).into(),
+                            );
+                            // Fall back to server API if sync fails and we have no local data
+                            if messages.get_untracked().is_empty() {
+                                load_from_server(id, &db, messages, scroll_to_bottom).await;
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    web_sys::console::warn_1(
+                        &format!("IndexedDB unavailable, falling back to server: {:?}", e).into(),
+                    );
+                    // Fallback: load directly from server
+                    match chat_service::get_chat_messages(id, None).await {
+                        Ok(resp) => {
+                            let bubbles: Vec<MessageBubble> = resp
+                                .messages
+                                .into_iter()
+                                .map(|m| MessageBubble {
+                                    id: m.id,
+                                    role: m.role,
+                                    content: create_rw_signal(m.content),
+                                    reasoning: create_rw_signal(m.reasoning),
+                                })
+                                .collect();
+                            messages.set(bubbles);
+                            request_animation_frame(scroll_to_bottom);
+                        }
+                        Err(_) => {}
+                    }
+                }
+            }
+        }
+    });
+
+    // Connect WebSocket — handle SyncAvailable
+    let local_db_ws = local_db.clone();
     {
         let ws_conn = ws_conn.clone();
         spawn_local(async move {
@@ -135,12 +240,59 @@ pub fn ChatPage() -> impl IntoView {
                                 }
                             }
                         }
-                        ws_service::WsEvent::MessageComplete { .. } => {
+                        ws_service::WsEvent::MessageComplete { chat_id: event_chat_id, message_id } => {
                             sending.set(false);
+
+                            // Save completed assistant message to IndexedDB
+                            let db_ref = local_db_ws.borrow().clone();
+                            if let Some(db) = db_ref {
+                                let msgs = messages.get_untracked();
+                                if let Some(bubble) = msgs.iter().find(|m| m.id == message_id) {
+                                    let local_msg = LocalChatMessage {
+                                        id: message_id.clone(),
+                                        chat_id: event_chat_id,
+                                        role: bubble.role.clone(),
+                                        content: bubble.content.get_untracked(),
+                                        reasoning: bubble.reasoning.get_untracked(),
+                                        created_at: String::new(),
+                                        version: 0,
+                                    };
+                                    let db = db.clone();
+                                    spawn_local(async move {
+                                        let _ = db.put_message(&local_msg).await;
+                                    });
+                                }
+                            }
                         }
                         ws_service::WsEvent::Error { message, .. } => {
                             error_msg.set(Some(message));
                             sending.set(false);
+                        }
+                        ws_service::WsEvent::SyncAvailable { .. } => {
+                            // New data available on server — trigger a sync pull
+                            let db_ref = local_db_ws.borrow().clone();
+                            if let Some(db) = db_ref {
+                                let cid = chat_id.get_untracked();
+                                spawn_local(async move {
+                                    let engine = SyncEngine::new(db.clone());
+                                    if let Ok(true) = engine.pull().await {
+                                        // Reload messages from IndexedDB
+                                        if let Ok(local_msgs) = db.get_messages_for_chat(&cid).await {
+                                            let bubbles: Vec<MessageBubble> = local_msgs
+                                                .into_iter()
+                                                .map(|m| MessageBubble {
+                                                    id: m.id,
+                                                    role: m.role,
+                                                    content: create_rw_signal(m.content),
+                                                    reasoning: create_rw_signal(m.reasoning),
+                                                })
+                                                .collect();
+                                            messages.set(bubbles);
+                                            request_animation_frame(scroll_to_bottom);
+                                        }
+                                    }
+                                });
+                            }
                         }
                     },
                     move || {
@@ -155,39 +307,8 @@ pub fn ChatPage() -> impl IntoView {
         });
     }
 
-    // Initialize chat_id and load existing messages
-    spawn_local({
-        let params = params;
-        let chat_id = chat_id;
-        let messages = messages;
-        async move {
-            let p = params.get_untracked();
-            let id = p.get("id").expect("id param must exist at this point");
-            chat_id.set(id.clone());
-            match chat_service::get_chat_messages(id, None).await {
-                Ok(resp) => {
-                    let bubbles: Vec<MessageBubble> = resp
-                        .messages
-                        .into_iter()
-                        .map(|m| MessageBubble {
-                            id: m.id,
-                            role: m.role,
-                            content: create_rw_signal(m.content),
-                            reasoning: create_rw_signal(m.reasoning),
-                        })
-                        .collect();
-                    messages.set(bubbles);
-                    // Scroll to bottom after loading messages
-                    request_animation_frame(scroll_to_bottom);
-                }
-                Err(_e) => {
-                    // Chat might not exist yet, that's ok for new chats
-                }
-            }
-        }
-    });
-
-    // Debounced draft saving on input change
+    // Debounced draft saving — write to IndexedDB first, then background push to server
+    let local_db_draft = local_db.clone();
     let draft_timeout_clone = draft_timeout.clone();
     create_effect(move |_| {
         let text = input_text.get();
@@ -209,9 +330,23 @@ pub fn ChatPage() -> impl IntoView {
             window.clear_timeout_with_handle(timeout_id);
         }
 
+        let db_ref = local_db_draft.borrow().clone();
         let window = web_sys::window().expect("no window");
         let cb = wasm_bindgen::closure::Closure::once(move || {
             spawn_local(async move {
+                // Save to IndexedDB first
+                if let Some(db) = db_ref {
+                    let draft = LocalDraftEntry {
+                        id: mid.clone(),
+                        chat_id: cid.clone(),
+                        content: text.clone(),
+                        model: model.clone(),
+                        version: 0,
+                    };
+                    let _ = db.put_draft(&draft).await;
+                }
+
+                // Then push to server in background
                 let _ = chat_service::save_draft(&cid, &mid, &text, &model).await;
             });
         });
@@ -225,6 +360,7 @@ pub fn ChatPage() -> impl IntoView {
         *draft_timeout_clone.borrow_mut() = Some(timeout_id);
     });
 
+    let local_db_send = local_db.clone();
     let on_send = move || {
         let text = input_text.get_untracked().trim().to_string();
         if text.is_empty() || sending.get_untracked() {
@@ -261,6 +397,8 @@ pub fn ChatPage() -> impl IntoView {
         input_text.set(String::new());
         request_animation_frame(scroll_to_bottom);
 
+        let db_ref = local_db_send.borrow().clone();
+
         spawn_local({
             let chat_id = chat_id;
             let model = model;
@@ -271,6 +409,23 @@ pub fn ChatPage() -> impl IntoView {
             async move {
                 let cid = chat_id.get_untracked();
 
+                // Save user message to IndexedDB
+                if let Some(ref db) = db_ref {
+                    let local_msg = LocalChatMessage {
+                        id: message_id.clone(),
+                        chat_id: cid.clone(),
+                        role: "User".to_string(),
+                        content: text.clone(),
+                        reasoning: None,
+                        created_at: String::new(),
+                        version: 0,
+                    };
+                    let _ = db.put_message(&local_msg).await;
+                    // Remove draft from IndexedDB
+                    let _ = db.delete_draft(&message_id).await;
+                }
+
+                // Save draft to server and send
                 if let Err(e) =
                     chat_service::save_draft(&cid, &message_id, &text, &model).await
                 {
@@ -347,9 +502,20 @@ pub fn ChatPage() -> impl IntoView {
                 />
                 <div class="chat-page__header-title">
                     <span>"Chat"</span>
-                    {move || (!ws_connected.get()).then(|| view! {
-                        <span class="chat-page__header-disconnected">"Disconnected"</span>
-                    })}
+                    {move || {
+                        let sync = sync_status.get();
+                        if !sync.is_empty() {
+                            Some(view! {
+                                <span class="chat-page__header-syncing">{sync}</span>
+                            })
+                        } else if !ws_connected.get() {
+                            Some(view! {
+                                <span class="chat-page__header-disconnected">"Disconnected"</span>
+                            })
+                        } else {
+                            None
+                        }
+                    }}
                 </div>
                 <button class="chat-page__menu-btn" title="Menu">
                     <IconMenu/>
@@ -383,4 +549,46 @@ pub fn ChatPage() -> impl IntoView {
         </div>
     }
     .into_view()
+}
+
+/// Fallback: load messages from server API and store in IndexedDB
+async fn load_from_server(
+    chat_id: &str,
+    db: &Rc<LocalDb>,
+    messages: RwSignal<Vec<MessageBubble>>,
+    scroll_to_bottom: impl Fn() + 'static,
+) {
+    match chat_service::get_chat_messages(chat_id, None).await {
+        Ok(resp) => {
+            // Store in IndexedDB
+            let local_msgs: Vec<LocalChatMessage> = resp
+                .messages
+                .iter()
+                .map(|m| LocalChatMessage {
+                    id: m.id.clone(),
+                    chat_id: chat_id.to_string(),
+                    role: m.role.clone(),
+                    content: m.content.clone(),
+                    reasoning: m.reasoning.clone(),
+                    created_at: m.created_at.clone(),
+                    version: 0,
+                })
+                .collect();
+            let _ = db.put_messages_bulk(&local_msgs).await;
+
+            let bubbles: Vec<MessageBubble> = resp
+                .messages
+                .into_iter()
+                .map(|m| MessageBubble {
+                    id: m.id,
+                    role: m.role,
+                    content: create_rw_signal(m.content),
+                    reasoning: create_rw_signal(m.reasoning),
+                })
+                .collect();
+            messages.set(bubbles);
+            request_animation_frame(scroll_to_bottom);
+        }
+        Err(_) => {}
+    }
 }

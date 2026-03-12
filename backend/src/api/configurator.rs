@@ -2,7 +2,8 @@ use crate::api::endpoints::{
     auth_change_password, auth_login, auth_me, auth_registration_complete,
     auth_registration_init, auth_registration_verify, auth_restore_complete, auth_restore_init,
     auth_restore_verify, auth_update_profile,
-    chat_get_draft, chat_get_messages, chat_list, chat_models, chat_save_draft, chat_send_message, ws,
+    chat_get_draft, chat_get_messages, chat_list, chat_models, chat_save_draft, chat_send_message,
+    sync_pull, sync_push, ws,
 };
 use actix_web::web;
 
@@ -34,6 +35,11 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             .route("/{chat_id}/draft", web::get().to(chat_get_draft::handler))
             .route("/{chat_id}/save-draft", web::post().to(chat_save_draft::handler))
             .route("/{chat_id}/send-message", web::post().to(chat_send_message::handler)),
+    );
+    cfg.service(
+        web::scope("/api/sync")
+            .route("/pull", web::post().to(sync_pull::handler))
+            .route("/push", web::post().to(sync_push::handler)),
     );
     cfg.route("/api/ws", web::get().to(ws::handler));
 }

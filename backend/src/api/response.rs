@@ -44,6 +44,7 @@ where
                 let status = match e.code.as_str() {
                     "InvalidCredentials" | "SessionNotFound" | "ExpiredSession" => StatusCode::UNAUTHORIZED,
                     "InternalServerError" => StatusCode::INTERNAL_SERVER_ERROR,
+                    "VersionConflict" => StatusCode::CONFLICT,
                     _ => StatusCode::BAD_REQUEST,
                 };
 

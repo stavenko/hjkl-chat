@@ -13,5 +13,7 @@ pub mod restore_init;
 pub mod restore_verify;
 pub mod save_draft;
 pub mod send_message;
+pub mod sync_pull;
+pub mod sync_push;
 pub mod update_profile;
 pub mod ws_connect;

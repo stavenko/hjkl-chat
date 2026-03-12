@@ -95,21 +95,23 @@ async fn run_server(config_path: PathBuf) -> std::io::Result<()> {
     let sqlite_provider = Arc::new(sqlite_provider);
 
     let ws_provider = Arc::new(WebSocketProvider::new());
-    let pipes_config = config.pipes.clone();
+
+    let bind_addr = config.addr.clone();
+    let bind_port = config.port;
 
     let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .app_data(web::Data::new(sqlite_provider.clone()))
             .app_data(web::Data::new(smtp_provider.clone()))
             .app_data(web::Data::new(s3_provider.clone()))
-            .app_data(web::Data::new(pipes_config.clone()))
+            .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(ws_provider.clone()))
             .configure(api::configure_routes)
     })
-    .bind((config.addr.as_str(), config.port))?
+    .bind((bind_addr.as_str(), bind_port))?
     .run();
 
-    println!("Backend server starting on http://{}:{}", config.addr, config.port);
+    println!("Backend server starting on http://{}:{}", bind_addr, bind_port);
     server.await
 }
 

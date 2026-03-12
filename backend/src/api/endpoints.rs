@@ -14,4 +14,6 @@ pub mod chat_list;
 pub mod chat_models;
 pub mod chat_save_draft;
 pub mod chat_send_message;
+pub mod sync_pull;
+pub mod sync_push;
 pub mod ws;

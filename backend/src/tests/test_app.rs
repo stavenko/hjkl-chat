@@ -2,6 +2,7 @@ use crate::api;
 use crate::config::Config;
 use crate::providers::smtp::SMTPProvider;
 use crate::providers::sqlite::SQLiteProvider;
+use crate::providers::websocket::WebSocketProvider;
 use crate::providers::{LocalFileSystemProvider, S3Provider};
 use actix_web::{web, App};
 use std::path::PathBuf;
@@ -12,6 +13,7 @@ static CONFIG_PATH_ENV_VAR: &str = "HJKL_CHAT_BACKEND_CONFIG_PATH";
 #[allow(dead_code)]
 pub struct AppDetails {
     pub sqlite: Arc<SQLiteProvider>,
+    pub s3: Arc<S3Provider>,
     pub config: Config,
 }
 
@@ -88,8 +90,11 @@ where
         .expect("Failed to initialize SMTP provider"),
     );
 
+    let ws_provider = Arc::new(WebSocketProvider::new());
+
     let fixture_details = AppDetails {
         sqlite: sqlite_provider.clone(),
+        s3: s3_provider.clone(),
         config: config.clone(),
     };
 
@@ -97,6 +102,7 @@ where
 
     let app_details = AppDetails {
         sqlite: sqlite_provider.clone(),
+        s3: s3_provider.clone(),
         config: config.clone(),
     };
 
@@ -104,6 +110,9 @@ where
         App::new()
             .app_data(web::Data::new(sqlite_provider.clone()))
             .app_data(web::Data::new(smtp_provider.clone()))
+            .app_data(web::Data::new(s3_provider.clone()))
+            .app_data(web::Data::new(ws_provider.clone()))
+            .app_data(web::Data::new(config.clone()))
             .configure(api::configure_routes),
     )
     .await;

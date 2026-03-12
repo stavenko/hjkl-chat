@@ -1,5 +1,8 @@
-use crate::models::chat::{ChatId, ChatIndex, ChatMessage, ChatMeta, MessageId, MessageRole};
+use crate::models::chat::{
+    ChatId, ChatIndex, ChatMessage, ChatMeta, MessageId, MessageRole, SyncAction, SyncEntityType,
+};
 use crate::providers::personalized_file_storage::PersonalizedFileStorage;
+use crate::providers::sync_ledger::SyncLedgerStorage;
 use chrono::Utc;
 
 #[derive(thiserror::Error, Debug)]
@@ -14,6 +17,8 @@ pub enum ChatStorageError {
     NotFound,
     #[error("Draft not found")]
     DraftNotFound,
+    #[error("Version conflict: expected {expected}, server has {actual}")]
+    VersionConflict { expected: u64, actual: u64 },
 }
 
 impl From<crate::providers::s3::S3ProviderError> for ChatStorageError {
@@ -41,6 +46,10 @@ impl ChatStorage {
         self.chat_id
     }
 
+    fn sync_ledger(&self) -> SyncLedgerStorage {
+        SyncLedgerStorage::new(self.file_storage.clone())
+    }
+
     fn chat_index_path(&self) -> String {
         format!("chats/{}/chat.yaml", self.chat_id)
     }
@@ -65,10 +74,20 @@ impl ChatStorage {
             let index: ChatIndex = serde_yaml::from_str(&yaml_str)?;
             Ok(index)
         } else {
+            let ledger = self.sync_ledger();
+            let version = ledger
+                .record(
+                    SyncEntityType::Chat,
+                    format!("chats/{}", self.chat_id),
+                    SyncAction::Created,
+                )
+                .await?;
+
             let index = ChatIndex {
                 id: self.chat_id,
                 model: model.to_string(),
                 message_ids: Vec::new(),
+                version,
             };
             let yaml = serde_yaml::to_string(&index)?;
             self.file_storage.put(&index_path, yaml.as_bytes()).await?;
@@ -78,7 +97,9 @@ impl ChatStorage {
             };
             let meta_yaml = serde_yaml::to_string(&meta)?;
             let meta_path = self.chat_meta_path();
-            self.file_storage.put(&meta_path, meta_yaml.as_bytes()).await?;
+            self.file_storage
+                .put(&meta_path, meta_yaml.as_bytes())
+                .await?;
 
             Ok(index)
         }
@@ -88,24 +109,58 @@ impl ChatStorage {
         &self,
         message_id: MessageId,
         content: &str,
-    ) -> ChatStorageResult<()> {
+    ) -> ChatStorageResult<u64> {
+        let ledger = self.sync_ledger();
+        let entity_path = format!("chats/{}/drafts/{}", self.chat_id, message_id);
+
+        let action = if self.file_storage.exists(&self.draft_path(&message_id)).await? {
+            SyncAction::Updated
+        } else {
+            SyncAction::Created
+        };
+
+        let version = ledger
+            .record(SyncEntityType::Draft, entity_path, action)
+            .await?;
+
         let draft = ChatMessage {
             id: message_id,
             role: MessageRole::User,
             content: content.to_string(),
             reasoning: None,
             created_at: Utc::now(),
+            version,
         };
         let yaml = serde_yaml::to_string(&draft)?;
         let path = self.draft_path(&message_id);
         self.file_storage.put(&path, yaml.as_bytes()).await?;
-        Ok(())
+        Ok(version)
     }
 
-    pub async fn get_draft(
+    /// Save draft with version check. Returns Err(VersionConflict) if expected_version
+    /// doesn't match the current server version.
+    pub async fn save_draft_versioned(
         &self,
         message_id: MessageId,
-    ) -> ChatStorageResult<ChatMessage> {
+        content: &str,
+        expected_version: u64,
+    ) -> ChatStorageResult<u64> {
+        let draft_path = self.draft_path(&message_id);
+        if self.file_storage.exists(&draft_path).await? {
+            let data = self.file_storage.get(&draft_path).await?;
+            let yaml_str = String::from_utf8(data)?;
+            let existing: ChatMessage = serde_yaml::from_str(&yaml_str)?;
+            if existing.version != expected_version {
+                return Err(ChatStorageError::VersionConflict {
+                    expected: expected_version,
+                    actual: existing.version,
+                });
+            }
+        }
+        self.save_draft(message_id, content).await
+    }
+
+    pub async fn get_draft(&self, message_id: MessageId) -> ChatStorageResult<ChatMessage> {
         let path = self.draft_path(&message_id);
         if !self.file_storage.exists(&path).await? {
             return Err(ChatStorageError::DraftNotFound);
@@ -124,15 +179,36 @@ impl ChatStorage {
 
         let data = self.file_storage.get(&draft_path).await?;
         let yaml_str = String::from_utf8(data)?;
-        let draft: ChatMessage = serde_yaml::from_str(&yaml_str)?;
+        let mut draft: ChatMessage = serde_yaml::from_str(&yaml_str)?;
+
+        let ledger = self.sync_ledger();
+        let version = ledger
+            .record(
+                SyncEntityType::Message,
+                format!("chats/{}/messages/{}", self.chat_id, message_id),
+                SyncAction::Created,
+            )
+            .await?;
+        draft.version = version;
 
         // Save as individual message file
         let msg_path = self.message_path(&message_id);
         let msg_yaml = serde_yaml::to_string(&draft)?;
-        self.file_storage.put(&msg_path, msg_yaml.as_bytes()).await?;
+        self.file_storage
+            .put(&msg_path, msg_yaml.as_bytes())
+            .await?;
 
         // Append to chat index
         self.append_message_id(message_id).await?;
+
+        // Record draft deletion
+        ledger
+            .record(
+                SyncEntityType::Draft,
+                format!("chats/{}/drafts/{}", self.chat_id, message_id),
+                SyncAction::Deleted,
+            )
+            .await?;
 
         // Delete the draft
         self.file_storage.delete(&draft_path).await?;
@@ -142,15 +218,25 @@ impl ChatStorage {
 
     pub async fn save_assistant_message(
         &self,
-        message: ChatMessage,
-    ) -> ChatStorageResult<()> {
+        mut message: ChatMessage,
+    ) -> ChatStorageResult<u64> {
+        let ledger = self.sync_ledger();
+        let version = ledger
+            .record(
+                SyncEntityType::Message,
+                format!("chats/{}/messages/{}", self.chat_id, message.id),
+                SyncAction::Created,
+            )
+            .await?;
+        message.version = version;
+
         let msg_path = self.message_path(&message.id);
         let yaml = serde_yaml::to_string(&message)?;
         self.file_storage.put(&msg_path, yaml.as_bytes()).await?;
 
         self.append_message_id(message.id).await?;
 
-        Ok(())
+        Ok(version)
     }
 
     pub async fn get_last_n(&self, n: usize) -> ChatStorageResult<Vec<ChatMessage>> {
@@ -175,13 +261,14 @@ impl ChatStorage {
         Ok(messages)
     }
 
-    async fn load_index(&self) -> ChatStorageResult<ChatIndex> {
+    pub async fn load_index(&self) -> ChatStorageResult<ChatIndex> {
         let path = self.chat_index_path();
         if !self.file_storage.exists(&path).await? {
             return Ok(ChatIndex {
                 id: self.chat_id,
                 model: String::new(),
                 message_ids: Vec::new(),
+                version: 0,
             });
         }
         let data = self.file_storage.get(&path).await?;
@@ -201,6 +288,17 @@ impl ChatStorage {
     async fn append_message_id(&self, message_id: MessageId) -> ChatStorageResult<()> {
         let mut index = self.load_index().await?;
         index.message_ids.push(message_id);
+
+        let ledger = self.sync_ledger();
+        let version = ledger
+            .record(
+                SyncEntityType::Chat,
+                format!("chats/{}", self.chat_id),
+                SyncAction::Updated,
+            )
+            .await?;
+        index.version = version;
+
         let yaml = serde_yaml::to_string(&index)?;
         let path = self.chat_index_path();
         self.file_storage.put(&path, yaml.as_bytes()).await?;

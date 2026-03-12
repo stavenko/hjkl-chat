@@ -75,7 +75,7 @@ async fn request_json<Resp: DeserializeOwned>(
     }
 }
 
-async fn post_json<Req: Serialize, Resp: DeserializeOwned>(
+pub async fn post_json<Req: Serialize, Resp: DeserializeOwned>(
     path: &str,
     payload: &Req,
 ) -> Result<Resp, String> {

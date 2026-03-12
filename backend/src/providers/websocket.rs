@@ -33,6 +33,9 @@ pub enum WsOutMessage {
         chat_id: ChatId,
         message: String,
     },
+    SyncAvailable {
+        version: u64,
+    },
 }
 
 pub struct WebSocketProvider {

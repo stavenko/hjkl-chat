@@ -75,7 +75,12 @@
       "Bash(open:*)",
       "mcp__chrome-devtools__get_network_request",
       "Bash(kill:*)",
-      "mcp__chrome-devtools__wait_for"
+      "mcp__chrome-devtools__wait_for",
+      "Bash(cd /Users/vasilijstavenko/projects/hjkl-chat/feat-create-local-files-storage && HJKL_CHAT_BACKEND_CONFIG_PATH=docker/test/config.toml cargo test --package backend sync_tests -- --test-threads=1 2>&1 | tail -50)",
+      "Bash(HJKL_CHAT_BACKEND_CONFIG_PATH=/Users/vasilijstavenko/projects/hjkl-chat/feat-create-local-files-storage/docker/test/config.toml cargo test --package backend sync_tests -- --test-threads=1 2>&1 | tail -80)",
+      "Bash(HJKL_CHAT_BACKEND_CONFIG_PATH=/Users/vasilijstavenko/projects/hjkl-chat/feat-create-local-files-storage/docker/test/config.toml cargo test --package backend sync_tests -- --test-threads=1 2>&1 | tail -25)",
+      "mcp__chrome-devtools__type_text",
+      "Bash(TOKEN=\"324cc98437d651d766126a931a894fafe7a8a51e2d6910cd5181477c662eceb05ed9a978ce3a1c8ca19e63abdaa411fac7ed7a140d63b8e9f5ce5441709fc9f0\"\ncurl -sv -X POST http://localhost:3001/api/sync/push \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -H \"Authorization: Bearer $TOKEN\" \\\\\n  -d '{\"expected_version\":18,\"changes\":[{\"entity_type\":\"Draft\",\"entity_id\":\"a04a5318-83b6-44fd-8730-007c8eceb2b7\",\"chat_id\":\"1324aa09-30ec-41e5-9919-eabb95743356\",\"data\":{\"content\":\"Server version of the draft\",\"model\":\"qwen3-30b-a3b\"},\"action\":\"Updated\"}]}' 2>&1 | tail -10)"
     ]
   }
 }

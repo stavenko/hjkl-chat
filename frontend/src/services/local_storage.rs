@@ -200,6 +200,7 @@ impl LocalDb {
             let msg: LocalChatMessage = serde_wasm_bindgen::from_value(val)?;
             messages.push(msg);
         }
+        messages.sort_by(|a, b| a.created_at.cmp(&b.created_at));
         Ok(messages)
     }
 

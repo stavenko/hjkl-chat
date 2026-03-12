@@ -6,11 +6,30 @@ use web_sys::{Headers, RequestInit, RequestMode};
 use crate::services::get_api_base_url;
 use crate::services::auth_service;
 
-async fn request_json<Resp: DeserializeOwned>(
+#[derive(Debug, Clone)]
+pub struct ApiError {
+    pub status: u16,
+    pub code: String,
+    pub message: String,
+}
+
+impl std::fmt::Display for ApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl ApiError {
+    pub fn is_version_conflict(&self) -> bool {
+        self.status == 409 || self.code == "VersionConflict"
+    }
+}
+
+async fn request_json_typed<Resp: DeserializeOwned>(
     method: &str,
     path: &str,
     body: Option<String>,
-) -> Result<Resp, String> {
+) -> Result<Resp, ApiError> {
     let base_url = get_api_base_url();
     let url = format!("{}{}", base_url, path);
 
@@ -23,15 +42,15 @@ async fn request_json<Resp: DeserializeOwned>(
     }
 
     let headers =
-        Headers::new().map_err(|e| format!("Failed to create headers: {:?}", e))?;
+        Headers::new().map_err(|e| ApiError { status: 0, code: "ClientError".into(), message: format!("Failed to create headers: {:?}", e) })?;
     headers
         .set("Content-Type", "application/json")
-        .map_err(|e| format!("Failed to set header: {:?}", e))?;
+        .map_err(|e| ApiError { status: 0, code: "ClientError".into(), message: format!("Failed to set header: {:?}", e) })?;
 
     if let Some(token) = auth_service::get_token() {
         headers
             .set("Authorization", &format!("Bearer {}", token))
-            .map_err(|e| format!("Failed to set auth header: {:?}", e))?;
+            .map_err(|e| ApiError { status: 0, code: "ClientError".into(), message: format!("Failed to set auth header: {:?}", e) })?;
     }
 
     opts.set_headers(&headers);
@@ -40,39 +59,51 @@ async fn request_json<Resp: DeserializeOwned>(
     let resp_value =
         JsFuture::from(window.fetch_with_str_and_init(&url, &opts))
             .await
-            .map_err(|e| format!("Network error: {:?}", e))?;
+            .map_err(|e| ApiError { status: 0, code: "NetworkError".into(), message: format!("Network error: {:?}", e) })?;
 
     let resp: web_sys::Response = resp_value
         .dyn_into()
-        .map_err(|e| format!("Failed to convert response: {:?}", e))?;
+        .map_err(|e| ApiError { status: 0, code: "ClientError".into(), message: format!("Failed to convert response: {:?}", e) })?;
+
+    let status = resp.status();
 
     let text = JsFuture::from(
         resp.text()
-            .map_err(|e| format!("Failed to read body: {:?}", e))?,
+            .map_err(|e| ApiError { status, code: "ClientError".into(), message: format!("Failed to read body: {:?}", e) })?,
     )
     .await
-    .map_err(|e| format!("Failed to await body: {:?}", e))?;
+    .map_err(|e| ApiError { status, code: "ClientError".into(), message: format!("Failed to await body: {:?}", e) })?;
 
     let text_str = text
         .as_string()
-        .ok_or_else(|| "Response body is not a string".to_string())?;
+        .ok_or_else(|| ApiError { status, code: "ClientError".into(), message: "Response body is not a string".into() })?;
 
     if resp.ok() {
         serde_json::from_str::<Resp>(&text_str)
-            .map_err(|e| format!("Failed to parse response: {}", e))
+            .map_err(|e| ApiError { status, code: "ParseError".into(), message: format!("Failed to parse response: {}", e) })
     } else {
-        if resp.status() == 401 {
+        if status == 401 {
             auth_service::clear_token();
         }
         #[derive(Deserialize)]
         struct ErrorResponse {
+            #[serde(default)]
+            code: String,
             message: String,
         }
         match serde_json::from_str::<ErrorResponse>(&text_str) {
-            Ok(err) => Err(err.message),
-            Err(_) => Err(format!("Request failed with status {}", resp.status())),
+            Ok(err) => Err(ApiError { status, code: err.code, message: err.message }),
+            Err(_) => Err(ApiError { status, code: "Unknown".into(), message: format!("Request failed with status {}", status) }),
         }
     }
+}
+
+async fn request_json<Resp: DeserializeOwned>(
+    method: &str,
+    path: &str,
+    body: Option<String>,
+) -> Result<Resp, String> {
+    request_json_typed(method, path, body).await.map_err(|e| e.message)
 }
 
 pub async fn post_json<Req: Serialize, Resp: DeserializeOwned>(
@@ -82,6 +113,15 @@ pub async fn post_json<Req: Serialize, Resp: DeserializeOwned>(
     let body = serde_json::to_string(payload)
         .map_err(|e| format!("Failed to serialize request: {}", e))?;
     request_json("POST", path, Some(body)).await
+}
+
+pub async fn post_json_typed<Req: Serialize, Resp: DeserializeOwned>(
+    path: &str,
+    payload: &Req,
+) -> Result<Resp, ApiError> {
+    let body = serde_json::to_string(payload)
+        .map_err(|e| ApiError { status: 0, code: "SerializeError".into(), message: format!("Failed to serialize request: {}", e) })?;
+    request_json_typed("POST", path, Some(body)).await
 }
 
 async fn get_json<Resp: DeserializeOwned>(path: &str) -> Result<Resp, String> {

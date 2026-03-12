@@ -1,7 +1,7 @@
 use leptos::*;
 use wasm_bindgen::JsCast;
 
-use crate::components::icons::{IconPaperclip, IconSend};
+use crate::components::icons::{IconGitMerge, IconPaperclip, IconSend};
 
 fn auto_resize(el: &web_sys::HtmlTextAreaElement) {
     el.style().set_property("height", "auto").ok();
@@ -24,11 +24,17 @@ pub fn ChatInput(
     value: RwSignal<String>,
     #[prop(into, optional)] disabled: MaybeSignal<bool>,
     on_send: impl Fn() + 'static,
+    #[prop(into, optional)] has_conflict: MaybeSignal<bool>,
+    #[prop(optional)] on_resolve_click: Option<Box<dyn Fn() + 'static>>,
 ) -> impl IntoView {
     let on_send = std::rc::Rc::new(on_send);
-    let on_send_clone = on_send.clone();
+    let on_send_enter = on_send.clone();
+    let on_send_btn = on_send.clone();
+    let on_resolve_click = on_resolve_click.map(std::rc::Rc::new);
+    let on_resolve_click2 = on_resolve_click.clone();
 
-    let can_send = Signal::derive(move || !disabled.get() && !value.get().trim().is_empty());
+    let can_send = Signal::derive(move || !disabled.get() && !value.get().trim().is_empty() && !has_conflict.get());
+    let show_conflict = Signal::derive(move || has_conflict.get() && !value.get().trim().is_empty());
 
     view! {
         <div class="chat-input">
@@ -51,7 +57,7 @@ pub fn ChatInput(
                     if ev.key() == "Enter" && !ev.shift_key() {
                         ev.prevent_default();
                         if can_send.get_untracked() {
-                            on_send_clone();
+                            on_send_enter();
                             if let Some(el) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlTextAreaElement>().ok()) {
                                 el.style().set_property("height", "auto").ok();
                                 el.class_list().remove_1("chat-input__textarea--multiline").ok();
@@ -60,23 +66,44 @@ pub fn ChatInput(
                     }
                 }
             />
-            <button
-                class=move || {
-                    if can_send.get() {
-                        "chat-input__send"
-                    } else {
-                        "chat-input__send chat-input__send--disabled"
-                    }
+            {move || {
+                if show_conflict.get() {
+                    let on_resolve = on_resolve_click2.clone();
+                    view! {
+                        <button
+                            class="chat-input__resolve"
+                            on:click=move |_| {
+                                if let Some(ref cb) = on_resolve {
+                                    cb();
+                                }
+                            }
+                        >
+                            <IconGitMerge/>
+                        </button>
+                    }.into_view()
+                } else {
+                    let on_send_click = on_send_btn.clone();
+                    view! {
+                        <button
+                            class=move || {
+                                if can_send.get() {
+                                    "chat-input__send"
+                                } else {
+                                    "chat-input__send chat-input__send--disabled"
+                                }
+                            }
+                            disabled=move || !can_send.get()
+                            on:click=move |_| {
+                                if can_send.get_untracked() {
+                                    on_send_click();
+                                }
+                            }
+                        >
+                            <IconSend/>
+                        </button>
+                    }.into_view()
                 }
-                disabled=move || !can_send.get()
-                on:click=move |_| {
-                    if can_send.get_untracked() {
-                        on_send();
-                    }
-                }
-            >
-                <IconSend/>
-            </button>
+            }}
         </div>
     }
 }

@@ -10,9 +10,9 @@ fn now_iso() -> String {
 }
 
 use crate::components::icons::IconMenu;
-use crate::components::{ChatBackground, ChatBubble, ChatInput, ModelSelector, ProfileModal, UserIcon};
+use crate::components::{ChatBackground, ChatBubble, ChatInput, ConflictModal, ModelSelector, ProfileModal, UserIcon};
 use crate::services::local_storage::{LocalChatMessage, LocalDb, LocalDraftEntry};
-use crate::services::sync_engine::SyncEngine;
+use crate::services::sync_engine::{PushResult, SyncEngine};
 use crate::services::{auth_service, chat_service, ws_service};
 
 #[derive(Clone)]
@@ -72,6 +72,13 @@ pub fn ChatPage() -> impl IntoView {
     let user_name = create_rw_signal(String::new());
     let wallpaper_ref = create_node_ref::<html::Div>();
     let sync_status = create_rw_signal(String::new());
+
+    // Conflict state
+    let has_conflict = create_rw_signal(false);
+    let conflict_open = create_rw_signal(false);
+    let conflict_server_content = create_rw_signal(String::new());
+    let conflict_local_content = create_rw_signal(String::new());
+    let conflict_draft_id = create_rw_signal(String::new());
 
     // Shared LocalDb handle
     let local_db: Rc<RefCell<Option<Rc<LocalDb>>>> = Rc::new(RefCell::new(None));
@@ -415,10 +422,29 @@ pub fn ChatPage() -> impl IntoView {
                 // Push draft to server via sync before sending
                 if let Some(ref db) = db_ref {
                     let engine = SyncEngine::new(db.clone());
-                    if let Err(e) = engine.push_drafts(&cid).await {
-                        error_msg.set(Some(format!("Failed to sync draft: {}", e)));
-                        sending.set(false);
-                        return;
+                    match engine.push_drafts(&cid).await {
+                        Ok(PushResult::Ok) => {}
+                        Ok(PushResult::Conflict(info)) => {
+                            // Conflict detected — restore state and show conflict UI
+                            // Put the user message text back
+                            input_text.set(text.clone());
+                            current_message_id.set(Some(message_id.clone()));
+                            // Remove the user bubble we just added
+                            messages.update(|m| {
+                                m.retain(|b| b.id != message_id);
+                            });
+                            conflict_server_content.set(info.server_content);
+                            conflict_local_content.set(info.local_content);
+                            conflict_draft_id.set(info.draft_id);
+                            has_conflict.set(true);
+                            sending.set(false);
+                            return;
+                        }
+                        Err(e) => {
+                            error_msg.set(Some(format!("Failed to sync draft: {}", e)));
+                            sending.set(false);
+                            return;
+                        }
                     }
                 }
 
@@ -455,6 +481,46 @@ pub fn ChatPage() -> impl IntoView {
                 }
             }
         });
+    };
+
+    // Handle conflict resolution
+    let local_db_resolve = local_db.clone();
+    let on_conflict_resolve = move |resolved_text: String| {
+        let db_ref = local_db_resolve.borrow().clone();
+        let draft_id = conflict_draft_id.get_untracked();
+        let cid = chat_id.get_untracked();
+        let model = selected_model.get_untracked();
+
+        conflict_open.set(false);
+
+        spawn_local(async move {
+            if let Some(db) = db_ref {
+                let draft = LocalDraftEntry {
+                    id: draft_id.clone(),
+                    chat_id: cid.clone(),
+                    content: resolved_text.clone(),
+                    model: model.clone(),
+                    version: 0,
+                };
+
+                let engine = SyncEngine::new(db.clone());
+                match engine.push_resolved_draft(&draft).await {
+                    Ok(()) => {
+                        // Update input with resolved text
+                        input_text.set(resolved_text);
+                        current_message_id.set(Some(draft_id));
+                        has_conflict.set(false);
+                    }
+                    Err(e) => {
+                        error_msg.set(Some(format!("Failed to push resolved draft: {}", e)));
+                    }
+                }
+            }
+        });
+    };
+
+    let on_resolve_click = move || {
+        conflict_open.set(true);
     };
 
     {
@@ -544,11 +610,21 @@ pub fn ChatPage() -> impl IntoView {
                     value=input_text
                     disabled=MaybeSignal::derive(move || sending.get())
                     on_send=on_send
+                    has_conflict=MaybeSignal::derive(move || has_conflict.get())
+                    on_resolve_click=Box::new(on_resolve_click)
                 />
             </div>
 
             // Profile modal
             <ProfileModal open=profile_open/>
+
+            // Conflict resolution modal
+            <ConflictModal
+                open=conflict_open
+                server_content=conflict_server_content
+                local_content=conflict_local_content
+                on_resolve=Box::new(on_conflict_resolve)
+            />
         </div>
     }
     .into_view()

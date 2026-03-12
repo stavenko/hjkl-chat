@@ -792,3 +792,257 @@ body {
 .model-selector__select:focus {
   border-color: var(--color-input-border-focus);
 }
+
+/* ===== Chat Input — Resolve Conflict button ===== */
+.chat-input__resolve {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-input-height);
+  height: var(--size-input-height);
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-strength-medium);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  flex-shrink: 0;
+}
+
+.chat-input__resolve:hover {
+  filter: brightness(1.1);
+  transform: scale(1.05);
+}
+
+.chat-input__resolve:active {
+  transform: scale(0.95);
+}
+
+/* ===== Conflict Modal ===== */
+.conflict-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.conflict-modal {
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  margin: var(--spacing-md);
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.conflict-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: var(--stroke-default) solid var(--color-input-border);
+  flex-shrink: 0;
+}
+
+.conflict-modal__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.conflict-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xl);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  line-height: 1;
+}
+
+.conflict-modal__close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-primary);
+}
+
+.conflict-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.conflict-modal__diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.conflict-modal__panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.conflict-modal__panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.conflict-modal__panel-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.conflict-modal__use-btn {
+  border: none;
+  background: none;
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+.conflict-modal__use-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--color-link-hover);
+}
+
+.conflict-modal__lines {
+  border: var(--stroke-default) solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-input-bg);
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-sm);
+}
+
+.conflict-modal__line {
+  padding: 2px var(--spacing-sm);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.5em;
+  line-height: 1.5;
+}
+
+.conflict-modal__line:hover {
+  background-color: rgba(0, 120, 255, 0.08);
+}
+
+.conflict-modal__line--same {
+  color: var(--color-text-secondary);
+}
+
+.conflict-modal__line--server {
+  background-color: rgba(255, 100, 100, 0.1);
+  color: var(--color-text-primary);
+}
+
+.conflict-modal__line--local {
+  background-color: rgba(100, 200, 100, 0.1);
+  color: var(--color-text-primary);
+}
+
+.conflict-modal__result {
+  display: flex;
+  flex-direction: column;
+}
+
+.conflict-modal__result-textarea {
+  width: 100%;
+  min-height: 100px;
+  max-height: 200px;
+  padding: var(--spacing-sm);
+  border: var(--stroke-default) solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.conflict-modal__result-textarea:focus {
+  border-color: var(--color-input-border-focus);
+  box-shadow: var(--shadow-input-focus);
+}
+
+.conflict-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: var(--stroke-default) solid var(--color-input-border);
+  flex-shrink: 0;
+}
+
+.conflict-modal__cancel-btn {
+  height: var(--size-button-height);
+  padding: 0 var(--spacing-lg);
+  border: var(--stroke-default) solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.conflict-modal__cancel-btn:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.conflict-modal__resolve-btn {
+  height: var(--size-button-height);
+  padding: 0 var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-button-primary-bg);
+  color: var(--color-button-primary-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.conflict-modal__resolve-btn:hover {
+  background-color: var(--color-button-primary-hover);
+}

@@ -125,66 +125,6 @@ pub async fn list_chats() -> Result<ListChatsResponse, String> {
 }
 
 #[derive(Serialize)]
-struct SaveDraftRequest {
-    message_id: String,
-    content: String,
-    model: String,
-}
-
-#[derive(Deserialize)]
-pub struct SaveDraftResponse {
-    pub status: String,
-    pub message_id: String,
-}
-
-pub async fn save_draft(
-    chat_id: &str,
-    message_id: &str,
-    content: &str,
-    model: &str,
-) -> Result<SaveDraftResponse, String> {
-    post_json(
-        &format!("/api/chat/{}/save-draft", chat_id),
-        &SaveDraftRequest {
-            message_id: message_id.to_string(),
-            content: content.to_string(),
-            model: model.to_string(),
-        },
-    )
-    .await
-}
-
-#[derive(Deserialize)]
-pub struct GetDraftResponse {
-    pub status: String,
-    pub draft: ChatMessage,
-}
-
-pub async fn get_draft(
-    chat_id: &str,
-    message_id: &str,
-) -> Result<GetDraftResponse, String> {
-    get_json(&format!("/api/chat/{}/draft?message_id={}", chat_id, message_id)).await
-}
-
-#[derive(Deserialize)]
-pub struct GetChatMessagesResponse {
-    pub status: String,
-    pub messages: Vec<ChatMessage>,
-}
-
-pub async fn get_chat_messages(
-    chat_id: &str,
-    last_n: Option<usize>,
-) -> Result<GetChatMessagesResponse, String> {
-    let path = match last_n {
-        Some(n) => format!("/api/chat/{}/messages?last_n={}", chat_id, n),
-        None => format!("/api/chat/{}/messages", chat_id),
-    };
-    get_json(&path).await
-}
-
-#[derive(Serialize)]
 struct SendMessageRequest {
     message_id: String,
     model: String,

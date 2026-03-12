@@ -122,6 +122,8 @@ pub fn ChatPage() -> impl IntoView {
         let chat_id = chat_id;
         let messages = messages;
         let sync_status = sync_status;
+        let input_text = input_text;
+        let current_message_id = current_message_id;
         async move {
             let p = params.get_untracked();
             let id = p.get("id").expect("id param must exist at this point");
@@ -133,7 +135,7 @@ pub fn ChatPage() -> impl IntoView {
                     let db = Rc::new(db);
                     *local_db_init.borrow_mut() = Some(db.clone());
 
-                    // Step 1: Load from IndexedDB (instant)
+                    // Step 1: Load messages from IndexedDB (instant)
                     match db.get_messages_for_chat(id).await {
                         Ok(local_msgs) if !local_msgs.is_empty() => {
                             let bubbles: Vec<MessageBubble> = local_msgs
@@ -149,6 +151,14 @@ pub fn ChatPage() -> impl IntoView {
                             request_animation_frame(scroll_to_bottom);
                         }
                         _ => {}
+                    }
+
+                    // Step 1b: Restore draft from IndexedDB
+                    if let Ok(drafts) = db.get_drafts_for_chat(id).await {
+                        if let Some(draft) = drafts.into_iter().next() {
+                            input_text.set(draft.content);
+                            current_message_id.set(Some(draft.id));
+                        }
                     }
 
                     // Step 2: Background sync pull from server

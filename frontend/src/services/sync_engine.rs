@@ -74,6 +74,22 @@ struct SyncPushResponse {
     pub new_version: u64,
 }
 
+/// Information about a draft conflict between local and server versions.
+#[derive(Debug, Clone)]
+pub struct ConflictInfo {
+    pub draft_id: String,
+    pub chat_id: String,
+    pub local_content: String,
+    pub server_content: String,
+}
+
+/// Result of a push operation.
+#[derive(Debug)]
+pub enum PushResult {
+    Ok,
+    Conflict(ConflictInfo),
+}
+
 pub struct SyncEngine {
     db: Rc<LocalDb>,
 }
@@ -167,8 +183,8 @@ impl SyncEngine {
         Ok(true)
     }
 
-    /// Push local drafts to server.
-    pub async fn push_drafts(&self, chat_id: &str) -> Result<(), String> {
+    /// Push local drafts to server. Returns conflict info if there's a version mismatch.
+    pub async fn push_drafts(&self, chat_id: &str) -> Result<PushResult, String> {
         let drafts = self
             .db
             .get_drafts_for_chat(chat_id)
@@ -176,7 +192,105 @@ impl SyncEngine {
             .map_err(|e| format!("Failed to get local drafts: {:?}", e))?;
 
         if drafts.is_empty() {
-            return Ok(());
+            return Ok(PushResult::Ok);
+        }
+
+        // Save local draft content before attempting push (pull may overwrite it)
+        let local_drafts: Vec<LocalDraftEntry> = drafts.clone();
+
+        let version = self
+            .db
+            .get_last_synced_version()
+            .await
+            .map_err(|e| format!("Failed to get synced version: {:?}", e))?;
+
+        let changes: Vec<SyncPushChange> = drafts
+            .iter()
+            .map(|d| SyncPushChange {
+                entity_type: "Draft".to_string(),
+                entity_id: d.id.clone(),
+                chat_id: d.chat_id.clone(),
+                data: serde_json::json!({
+                    "content": d.content,
+                    "model": d.model,
+                }),
+                action: "Updated".to_string(),
+            })
+            .collect();
+
+        let result: Result<SyncPushResponse, chat_service::ApiError> =
+            chat_service::post_json_typed(
+                "/api/sync/push",
+                &SyncPushRequest {
+                    expected_version: version,
+                    changes,
+                },
+            )
+            .await;
+
+        match result {
+            Ok(resp) => {
+                self.db
+                    .set_last_synced_version(resp.new_version)
+                    .await
+                    .map_err(|e| format!("Failed to update synced version: {:?}", e))?;
+                Ok(PushResult::Ok)
+            }
+            Err(err) if err.is_version_conflict() => {
+                // Pull server state to get the server's version of the draft
+                let _ = self.pull().await;
+
+                // Now IndexedDB has server versions. Get server draft content.
+                let server_drafts = self
+                    .db
+                    .get_drafts_for_chat(chat_id)
+                    .await
+                    .map_err(|e| format!("Failed to get server drafts: {:?}", e))?;
+
+                // Find the first conflicting draft
+                if let Some(local_draft) = local_drafts.first() {
+                    let server_content = server_drafts
+                        .iter()
+                        .find(|d| d.id == local_draft.id)
+                        .map(|d| d.content.clone())
+                        .unwrap_or_default();
+
+                    // If content is the same, no real conflict — just version mismatch.
+                    // Re-push with updated version (non-recursive).
+                    if server_content == local_draft.content {
+                        // Restore local draft in IndexedDB
+                        let _ = self.db.put_draft(local_draft).await;
+                        // Try push again with updated version
+                        return self.try_push_drafts_once(chat_id).await;
+                    }
+
+                    // Restore local draft in IndexedDB so user can see it
+                    let _ = self.db.put_draft(local_draft).await;
+
+                    Ok(PushResult::Conflict(ConflictInfo {
+                        draft_id: local_draft.id.clone(),
+                        chat_id: local_draft.chat_id.clone(),
+                        local_content: local_draft.content.clone(),
+                        server_content,
+                    }))
+                } else {
+                    Ok(PushResult::Ok)
+                }
+            }
+            Err(err) => Err(err.message),
+        }
+    }
+
+    /// Non-recursive push attempt. Returns error on any failure including conflict.
+    async fn try_push_drafts_once(&self, chat_id: &str) -> Result<PushResult, String> {
+        let drafts = self
+            .db
+            .get_drafts_for_chat(chat_id)
+            .await
+            .map_err(|e| format!("Failed to get local drafts: {:?}", e))?;
+
+        if drafts.is_empty() {
+            return Ok(PushResult::Ok);
         }
 
         let version = self
@@ -213,7 +327,20 @@ impl SyncEngine {
             .await
             .map_err(|e| format!("Failed to update synced version: {:?}", e))?;
 
-        Ok(())
+        Ok(PushResult::Ok)
+    }
+
+    /// Push a resolved draft to server. Saves to IndexedDB first, then pushes.
+    pub async fn push_resolved_draft(&self, draft: &LocalDraftEntry) -> Result<(), String> {
+        self.db
+            .put_draft(draft)
+            .await
+            .map_err(|e| format!("Failed to save resolved draft: {:?}", e))?;
+
+        match self.push_drafts(&draft.chat_id).await? {
+            PushResult::Ok => Ok(()),
+            PushResult::Conflict(_) => Err("Conflict persists after resolution. Please try again.".into()),
+        }
     }
 
     /// Full sync cycle: pull then push.

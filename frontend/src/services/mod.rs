@@ -1,5 +1,7 @@
 pub mod auth_service;
 pub mod chat_service;
+pub mod local_storage;
+pub mod sync_engine;
 pub mod ws_service;
 
 use leptos::*;

@@ -147,18 +147,25 @@ pub async fn command(
                 Some(reasoning_buf)
             },
             created_at: Utc::now(),
+            version: 0, // will be set by save_assistant_message
         };
 
-        if let Err(e) = chat_storage.save_assistant_message(assistant_message).await {
-            eprintln!("Failed to save assistant message: {}", e);
-            ws.send_to_user(
-                user_id,
-                WsOutMessage::Error {
-                    chat_id,
-                    message: format!("Failed to save response: {}", e),
-                },
-            )
-            .await;
+        match chat_storage.save_assistant_message(assistant_message).await {
+            Ok(version) => {
+                ws.send_to_user(user_id, WsOutMessage::SyncAvailable { version })
+                    .await;
+            }
+            Err(e) => {
+                eprintln!("Failed to save assistant message: {}", e);
+                ws.send_to_user(
+                    user_id,
+                    WsOutMessage::Error {
+                        chat_id,
+                        message: format!("Failed to save response: {}", e),
+                    },
+                )
+                .await;
+            }
         }
     });
 

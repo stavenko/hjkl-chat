@@ -22,6 +22,9 @@ pub enum WsEvent {
         chat_id: String,
         message: String,
     },
+    SyncAvailable {
+        version: u64,
+    },
 }
 
 pub struct WsConnection {

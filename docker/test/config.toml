@@ -21,3 +21,7 @@ use_tls = false
 username = "admin"
 password = "admin"
 from_email = "noreply@example.com"
+
+[pipes]
+api_base_url = "http://localhost:8080"
+models = []

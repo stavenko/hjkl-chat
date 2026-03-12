@@ -6,6 +6,7 @@ pub mod personalized_file_storage;
 pub mod s3;
 pub mod smtp;
 pub mod sqlite;
+pub mod sync_ledger;
 pub mod websocket;
 
 pub use local_filesystem::LocalFileSystemProvider;

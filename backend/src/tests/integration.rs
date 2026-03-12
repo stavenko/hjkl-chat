@@ -9,6 +9,7 @@ mod login_service_tests;
 mod profile_service_tests;
 mod registration_service_tests;
 mod restore_service_tests;
+mod sync_tests;
 
 #[actix_rt::test]
 async fn test_test_utils_generate_valid_values() {

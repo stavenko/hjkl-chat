@@ -193,6 +193,31 @@ impl ChatStorage {
         Ok(draft)
     }
 
+    pub async fn update_keywords(&self) -> ChatStorageResult<()> {
+        let messages = self.get_all_messages().await?;
+        let all_content: String = messages
+            .iter()
+            .map(|m| m.content.as_str())
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        let tokens = keyword_extractor::tokenize(&all_content);
+        let tf = keyword_extractor::term_frequencies(&tokens);
+
+        let term_doc_counts: std::collections::HashMap<String, usize> =
+            tf.iter().map(|(t, _)| (t.clone(), 1)).collect();
+
+        let keywords = keyword_extractor::extract_keywords(&tf, 1, &term_doc_counts, 20);
+        let serialized = keyword_extractor::serialize_keywords(&keywords);
+
+        let kw_path = format!("chats/{}.kw.txt", self.chat_id);
+        self.file_storage
+            .put(&kw_path, serialized.as_bytes())
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn save_assistant_message(
         &self,
         mut message: ChatMessage,
@@ -212,6 +237,9 @@ impl ChatStorage {
         self.file_storage.put(&msg_path, yaml.as_bytes()).await?;
 
         self.append_message_id(message.id).await?;
+
+        // Update keywords after each assistant response
+        let _ = self.update_keywords().await;
 
         Ok(version)
     }

@@ -1046,3 +1046,168 @@ body {
 .conflict-modal__resolve-btn:hover {
   background-color: var(--color-button-primary-hover);
 }
+
+/* ===== File Browser ===== */
+.file-browser {
+  max-width: var(--size-chat-max-width);
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-md);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-browser__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.file-browser__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.file-browser__add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-input-height);
+  height: var(--size-input-height);
+  border: var(--stroke-default) solid var(--color-input-border);
+  border-radius: var(--radius-full);
+  background-color: var(--color-button-primary-bg);
+  color: var(--color-button-primary-text);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.file-browser__add-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.file-browser__search {
+  margin-bottom: var(--spacing-md);
+  position: relative;
+}
+
+.file-browser__search-input {
+  width: 100%;
+  height: var(--size-input-height);
+  padding: 0 var(--spacing-input-padding);
+  border: var(--stroke-default) solid var(--color-input-border);
+  border-radius: var(--radius-full);
+  background-color: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.file-browser__search-input::placeholder {
+  color: var(--color-input-placeholder);
+  opacity: var(--opacity-placeholder);
+}
+
+.file-browser__search-input:focus {
+  border-color: var(--color-input-border-focus);
+  box-shadow: var(--shadow-input-focus);
+}
+
+.file-browser__suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: var(--stroke-default) solid var(--color-input-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+  margin-top: var(--spacing-xs);
+}
+
+.file-browser__suggestion {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: var(--stroke-default) solid var(--color-input-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface-alt);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.file-browser__suggestion:hover {
+  background: var(--color-fb-project-active);
+  border-color: var(--color-input-border-focus);
+}
+
+.file-browser__list {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: var(--stroke-default) solid var(--color-input-border);
+}
+
+.file-browser__row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  background: var(--color-fb-row-odd);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  width: 100%;
+}
+
+.file-browser__row:nth-child(even) {
+  background: var(--color-fb-row-even);
+}
+
+.file-browser__row:hover {
+  background: var(--color-fb-project-active);
+}
+
+.file-browser__row-type {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  min-width: 40px;
+}
+
+.file-browser__row-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-browser__empty {
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+}

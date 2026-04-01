@@ -4,6 +4,7 @@ use leptos_router::*;
 use crate::components::ThemeToggle;
 use crate::pages::change_password::ChangePasswordPage;
 use crate::pages::chat::ChatPage;
+use crate::pages::file_browser::FileBrowserPage;
 use crate::pages::login::LoginPage;
 use crate::pages::profile::ProfilePage;
 use crate::pages::registration_input_email::RegistrationInputEmailPage;
@@ -38,6 +39,7 @@ pub fn App() -> impl IntoView {
                     <Route path="/me/change-password" view=ChangePasswordPage/>
                     <Route path="/chat" view=ChatPage/>
                     <Route path="/chat/:id" view=ChatPage/>
+                    <Route path="/files" view=FileBrowserPage/>
                     <Route path="/" view=HomePage/>
                 </Routes>
             </main>

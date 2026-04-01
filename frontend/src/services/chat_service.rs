@@ -124,7 +124,7 @@ pub async fn post_json_typed<Req: Serialize, Resp: DeserializeOwned>(
     request_json_typed("POST", path, Some(body)).await
 }
 
-async fn get_json<Resp: DeserializeOwned>(path: &str) -> Result<Resp, String> {
+pub async fn get_json<Resp: DeserializeOwned>(path: &str) -> Result<Resp, String> {
     request_json("GET", path, None).await
 }
 
@@ -199,4 +199,51 @@ pub struct ListModelsResponse {
 
 pub async fn list_models() -> Result<ListModelsResponse, String> {
     get_json("/api/chat/models").await
+}
+
+// --- File browser API ---
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TocEntry {
+    pub path: String,
+    pub title: String,
+    pub file_type: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TocResponse {
+    pub status: String,
+    pub entries: Vec<TocEntry>,
+}
+
+pub async fn get_toc() -> Result<TocResponse, String> {
+    get_json("/api/files/toc").await
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct FileKeywordsResponse {
+    pub status: String,
+    pub path: String,
+    pub keywords: Vec<String>,
+}
+
+pub async fn get_file_keywords(path: &str) -> Result<FileKeywordsResponse, String> {
+    get_json(&format!("/api/files/keywords?path={}", path)).await
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SearchResult {
+    pub path: String,
+    pub score: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SearchResponse {
+    pub status: String,
+    pub results: Vec<SearchResult>,
+}
+
+pub async fn search_files(query: &str) -> Result<SearchResponse, String> {
+    post_json("/api/files/search", &serde_json::json!({ "query": query })).await
 }

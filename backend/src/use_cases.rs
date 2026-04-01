@@ -1,5 +1,7 @@
 pub mod change_password;
+pub mod get_file_keywords;
 pub mod get_profile;
+pub mod get_toc;
 pub mod list_chats;
 pub mod list_models;
 pub mod login;
@@ -9,6 +11,7 @@ pub mod registration_verify;
 pub mod restore_complete;
 pub mod restore_init;
 pub mod restore_verify;
+pub mod search_files;
 pub mod send_message;
 pub mod sync_pull;
 pub mod sync_push;

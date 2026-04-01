@@ -9,12 +9,13 @@ use web_sys::{
 };
 
 const DB_NAME: &str = "hjkl_chat";
-const DB_VERSION: u32 = 1;
+const DB_VERSION: u32 = 2;
 
 const STORE_CHATS: &str = "chats";
 const STORE_MESSAGES: &str = "messages";
 const STORE_DRAFTS: &str = "drafts";
 const STORE_SYNC_META: &str = "sync_meta";
+const STORE_FILE_KEYWORDS: &str = "file_keywords";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalChatIndex {
@@ -42,6 +43,14 @@ pub struct LocalDraftEntry {
     pub content: String,
     pub model: String,
     pub version: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocalFileKeywords {
+    pub path: String,
+    pub title: String,
+    pub file_type: String,
+    pub keywords: Vec<String>,
 }
 
 pub struct LocalDb {
@@ -113,6 +122,13 @@ impl LocalDb {
                 let params = IdbObjectStoreParameters::new();
                 params.set_key_path(&JsValue::from_str("key"));
                 db.create_object_store_with_optional_parameters(STORE_SYNC_META, &params)
+                    .unwrap();
+            }
+
+            if !store_names.contains(STORE_FILE_KEYWORDS) {
+                let params = IdbObjectStoreParameters::new();
+                params.set_key_path(&JsValue::from_str("path"));
+                db.create_object_store_with_optional_parameters(STORE_FILE_KEYWORDS, &params)
                     .unwrap();
             }
         });
@@ -271,6 +287,44 @@ impl LocalDb {
             drafts.push(draft);
         }
         Ok(drafts)
+    }
+
+    // --- File keywords ---
+
+    pub async fn put_file_keywords(&self, entry: &LocalFileKeywords) -> Result<(), JsValue> {
+        let tx = self
+            .db
+            .transaction_with_str_and_mode(STORE_FILE_KEYWORDS, IdbTransactionMode::Readwrite)?;
+        let store = tx.object_store(STORE_FILE_KEYWORDS)?;
+        let js_val = serde_wasm_bindgen::to_value(entry)?;
+        store.put(&js_val)?;
+        idb_tx_to_future(&tx).await
+    }
+
+    pub async fn list_all_file_keywords(&self) -> Result<Vec<LocalFileKeywords>, JsValue> {
+        let tx = self
+            .db
+            .transaction_with_str_and_mode(STORE_FILE_KEYWORDS, IdbTransactionMode::Readonly)?;
+        let store = tx.object_store(STORE_FILE_KEYWORDS)?;
+        let req = store.get_all()?;
+        let result = idb_request_to_future(&req).await?;
+        let array: Array = result.unchecked_into();
+        let mut entries = Vec::new();
+        for i in 0..array.length() {
+            let val = array.get(i);
+            let entry: LocalFileKeywords = serde_wasm_bindgen::from_value(val)?;
+            entries.push(entry);
+        }
+        Ok(entries)
+    }
+
+    pub async fn delete_file_keywords(&self, path: &str) -> Result<(), JsValue> {
+        let tx = self
+            .db
+            .transaction_with_str_and_mode(STORE_FILE_KEYWORDS, IdbTransactionMode::Readwrite)?;
+        let store = tx.object_store(STORE_FILE_KEYWORDS)?;
+        store.delete(&JsValue::from_str(path))?;
+        idb_tx_to_future(&tx).await
     }
 
     // --- Sync metadata ---

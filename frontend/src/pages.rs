@@ -1,5 +1,6 @@
 pub mod change_password;
 pub mod chat;
+pub mod file_browser;
 mod helpers;
 pub mod login;
 pub mod profile;

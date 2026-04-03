@@ -1,6 +1,7 @@
 use leptos::*;
 use leptos_router::*;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 use uuid::Uuid;
 use wasm_bindgen::JsCast;
@@ -9,11 +10,49 @@ fn now_iso() -> String {
     js_sys::Date::new_0().to_iso_string().as_string().unwrap_or_default()
 }
 
+use crate::components::BubblePhase;
 use crate::components::icons::IconMenu;
 use crate::components::{ChatBackground, ChatBubble, ChatInput, ConflictModal, ModelSelector, ProfileModal, UserIcon};
 use crate::services::local_storage::{LocalChatMessage, LocalDb, LocalDraftEntry};
 use crate::services::sync_engine::{PushResult, SyncEngine};
 use crate::services::{auth_service, chat_service, ws_service};
+
+const THINKING_BUFFER_CAPACITY: usize = 100;
+
+/// FIFO buffer for thinking text, keyed by message_id.
+/// Evicts oldest entry when capacity is exceeded.
+struct ThinkingBuffer {
+    entries: HashMap<String, String>,
+    order: Vec<String>,
+}
+
+impl ThinkingBuffer {
+    fn new() -> Self {
+        Self {
+            entries: HashMap::new(),
+            order: Vec::new(),
+        }
+    }
+
+    fn append(&mut self, message_id: &str, text: &str) {
+        if let Some(existing) = self.entries.get_mut(message_id) {
+            existing.push_str(text);
+        } else {
+            if self.order.len() >= THINKING_BUFFER_CAPACITY {
+                if let Some(oldest) = self.order.first().cloned() {
+                    self.entries.remove(&oldest);
+                    self.order.remove(0);
+                }
+            }
+            self.entries.insert(message_id.to_string(), text.to_string());
+            self.order.push(message_id.to_string());
+        }
+    }
+
+    fn get(&self, message_id: &str) -> Option<&String> {
+        self.entries.get(message_id)
+    }
+}
 
 #[derive(Clone)]
 struct MessageBubble {
@@ -21,6 +60,8 @@ struct MessageBubble {
     role: String,
     content: RwSignal<String>,
     reasoning: RwSignal<Option<String>>,
+    thinking_count: RwSignal<usize>,
+    phase: RwSignal<BubblePhase>,
 }
 
 #[component]
@@ -69,6 +110,7 @@ pub fn ChatPage() -> impl IntoView {
     let current_message_id: RwSignal<Option<String>> = create_rw_signal(None);
     let draft_timeout: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(None));
     let profile_open = create_rw_signal(false);
+    let menu_open = create_rw_signal(false);
     let user_name = create_rw_signal(String::new());
     let wallpaper_ref = create_node_ref::<html::Div>();
     let sync_status = create_rw_signal(String::new());
@@ -82,6 +124,9 @@ pub fn ChatPage() -> impl IntoView {
 
     // Shared LocalDb handle
     let local_db: Rc<RefCell<Option<Rc<LocalDb>>>> = Rc::new(RefCell::new(None));
+
+    // FIFO thinking buffer — ephemeral, not persisted
+    let thinking_buffer: Rc<RefCell<ThinkingBuffer>> = Rc::new(RefCell::new(ThinkingBuffer::new()));
 
     let scroll_to_bottom = move || {
         if let Some(el) = wallpaper_ref.get() {
@@ -156,6 +201,8 @@ pub fn ChatPage() -> impl IntoView {
                                     role: m.role,
                                     content: create_rw_signal(m.content),
                                     reasoning: create_rw_signal(m.reasoning),
+                                    thinking_count: create_rw_signal(0),
+                                    phase: create_rw_signal(BubblePhase::Done),
                                 })
                                 .collect();
                             messages.set(bubbles);
@@ -188,6 +235,8 @@ pub fn ChatPage() -> impl IntoView {
                                             role: m.role,
                                             content: create_rw_signal(m.content),
                                             reasoning: create_rw_signal(m.reasoning),
+                                            thinking_count: create_rw_signal(0),
+                                            phase: create_rw_signal(BubblePhase::Done),
                                         })
                                         .collect();
                                     messages.set(bubbles);
@@ -214,6 +263,7 @@ pub fn ChatPage() -> impl IntoView {
 
     // Connect WebSocket — handle SyncAvailable
     let local_db_ws = local_db.clone();
+    let thinking_buffer_ws = thinking_buffer.clone();
     {
         let ws_conn = ws_conn.clone();
         spawn_local(async move {
@@ -229,20 +279,47 @@ pub fn ChatPage() -> impl IntoView {
                         } => {
                             let msgs = messages.get_untracked();
                             if let Some(bubble) = msgs.iter().find(|m| m.id == message_id) {
-                                if kind == "Thinking" {
-                                    bubble.reasoning.update(|r| {
-                                        let current = r.get_or_insert_with(String::new);
-                                        current.push_str(&text);
-                                    });
+                            if kind == "Thinking" {
+                                 // Store in ephemeral buffer
+                                    let token_count = {
+                                        let mut buf = thinking_buffer_ws.borrow_mut();
+                                        buf.append(&message_id, &text);
+                                        // Count whitespace-separated tokens
+                                        buf.get(&message_id)
+                                            .map(|s| s.split_whitespace().count())
+                                            .unwrap_or(0)
+                                    };
+                                    // Update reasoning signal from buffer for live display
+                                    let full_text = thinking_buffer_ws.borrow()
+                                        .get(&message_id)
+                                        .cloned()
+                                        .unwrap_or_default();
+                                    bubble.reasoning.set(Some(full_text));
+                                    bubble.thinking_count.set(token_count);
+                                    if bubble.phase.get_untracked() != BubblePhase::Thinking {
+                                        bubble.phase.set(BubblePhase::Thinking);
+                                    }
                                 } else {
+                                    // First content token transitions phase
+                                    if bubble.phase.get_untracked() != BubblePhase::Content {
+                                        bubble.phase.set(BubblePhase::Content);
+                                    }
                                     bubble.content.update(|c| c.push_str(&text));
                                 }
+                                request_animation_frame(scroll_to_bottom);
                             }
                         }
                         ws_service::WsEvent::MessageComplete { chat_id: event_chat_id, message_id } => {
                             sending.set(false);
 
+                            // Mark phase as Done
+                            let msgs = messages.get_untracked();
+                            if let Some(bubble) = msgs.iter().find(|m| m.id == message_id) {
+                                bubble.phase.set(BubblePhase::Done);
+                            }
+
                             // Save completed assistant message to IndexedDB
+                            // (reasoning is NOT saved — it's ephemeral)
                             let db_ref = local_db_ws.borrow().clone();
                             if let Some(db) = db_ref {
                                 let msgs = messages.get_untracked();
@@ -252,7 +329,7 @@ pub fn ChatPage() -> impl IntoView {
                                         chat_id: event_chat_id,
                                         role: bubble.role.clone(),
                                         content: bubble.content.get_untracked(),
-                                        reasoning: bubble.reasoning.get_untracked(),
+                                        reasoning: None, // thinking is ephemeral
                                         created_at: now_iso(),
                                         version: 0,
                                     };
@@ -284,6 +361,8 @@ pub fn ChatPage() -> impl IntoView {
                                                     role: m.role,
                                                     content: create_rw_signal(m.content),
                                                     reasoning: create_rw_signal(m.reasoning),
+                                                    thinking_count: create_rw_signal(0),
+                                                    phase: create_rw_signal(BubblePhase::Done),
                                                 })
                                                 .collect();
                                             messages.set(bubbles);
@@ -390,6 +469,8 @@ pub fn ChatPage() -> impl IntoView {
             role: "User".to_string(),
             content: create_rw_signal(text.clone()),
             reasoning: create_rw_signal(None),
+            thinking_count: create_rw_signal(0),
+            phase: create_rw_signal(BubblePhase::Done),
         };
         messages.update(|m| m.push(user_bubble));
         input_text.set(String::new());
@@ -470,6 +551,8 @@ pub fn ChatPage() -> impl IntoView {
                             role: "Assistant".to_string(),
                             content: create_rw_signal(String::new()),
                             reasoning: create_rw_signal(None),
+                            thinking_count: create_rw_signal(0),
+                            phase: create_rw_signal(BubblePhase::Querying),
                         };
                         messages.update(|m| m.push(assistant_bubble));
                         request_animation_frame(scroll_to_bottom);
@@ -551,11 +634,15 @@ pub fn ChatPage() -> impl IntoView {
                             let role = m.role.clone();
                             let content = Signal::derive(move || m.content.get());
                             let reasoning = Signal::derive(move || m.reasoning.get());
+                            let thinking_count = Signal::derive(move || m.thinking_count.get());
+                            let phase = Signal::derive(move || m.phase.get());
                             view! {
                                 <ChatBubble
                                     role=role
                                     content=content
                                     reasoning=reasoning
+                                    thinking_count=thinking_count
+                                    phase=phase
                                 />
                             }
                         }
@@ -586,10 +673,42 @@ pub fn ChatPage() -> impl IntoView {
                         }
                     }}
                 </div>
-                <button class="chat-page__menu-btn" title="Menu">
+                <button
+                    class="chat-page__menu-btn"
+                    title="Menu"
+                    on:click=move |_| menu_open.update(|v| *v = !*v)
+                >
                     <IconMenu/>
                 </button>
             </div>
+
+            // Popup menu backdrop — rendered outside header to avoid z-index issues
+            {move || {
+                if !menu_open.get() {
+                    return ().into_view();
+                }
+                view! {
+                    <div class="chat-page__menu-backdrop" on:click=move |_| menu_open.set(false)></div>
+                }.into_view()
+            }}
+            {move || {
+                if !menu_open.get() {
+                    return ().into_view();
+                }
+                view! {
+                    <div class="chat-page__menu-popup">
+                        <button
+                            class="chat-page__menu-item"
+                            on:click=move |_| {
+                                menu_open.set(false);
+                                use_navigate()("/files", NavigateOptions::default());
+                            }
+                        >
+                            "List files"
+                        </button>
+                    </div>
+                }.into_view()
+            }}
 
             // Model selector below avatar
             <div class="chat-page__model-bar">

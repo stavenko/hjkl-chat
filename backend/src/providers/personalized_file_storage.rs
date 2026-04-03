@@ -4,7 +4,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::api::auth_extractor::AuthenticatedUser;
-use crate::models::chat::UserId;
+use crate::models::chat::{UserId, UserMemory};
 use crate::providers::s3::{S3Provider, S3ProviderError};
 
 #[derive(Clone)]
@@ -50,6 +50,25 @@ impl PersonalizedFileStorage {
     pub async fn exists(&self, path: &str) -> Result<bool, S3ProviderError> {
         let key = self.scoped_path(path);
         self.s3.object_exists(&key).await
+    }
+
+    pub async fn get_user_memory(&self) -> Result<Option<UserMemory>, S3ProviderError> {
+        let path = "user-memory.yaml";
+        if !self.exists(path).await? {
+            return Ok(None);
+        }
+        let data = self.get(path).await?;
+        let yaml_str = String::from_utf8(data)
+            .map_err(|e| S3ProviderError::Other(e.to_string()))?;
+        let memory: UserMemory = serde_yaml::from_str(&yaml_str)
+            .map_err(|e| S3ProviderError::Other(e.to_string()))?;
+        Ok(Some(memory))
+    }
+
+    pub async fn save_user_memory(&self, memory: &UserMemory) -> Result<(), S3ProviderError> {
+        let yaml = serde_yaml::to_string(memory)
+            .map_err(|e| S3ProviderError::Other(e.to_string()))?;
+        self.put("user-memory.yaml", yaml.as_bytes()).await
     }
 }
 

@@ -1,5 +1,5 @@
 pub mod chat_storage;
-pub mod echo_executor;
+pub mod llm;
 pub mod local_filesystem;
 pub mod personalized_chat_storage;
 pub mod personalized_file_storage;

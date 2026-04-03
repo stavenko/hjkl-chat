@@ -11,6 +11,8 @@ pub enum S3ProviderError {
     AwsConfig(String),
     #[error("Byte stream error: {0}")]
     ByteStream(String),
+    #[error("{0}")]
+    Other(String),
 }
 
 pub type S3ProviderResult<T> = Result<T, S3ProviderError>;

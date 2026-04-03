@@ -1,5 +1,6 @@
 use crate::models::chat::{
-    ChatId, ChatIndex, ChatMessage, ChatMeta, MessageId, MessageRole, SyncAction, SyncEntityType,
+    ChatFacts, ChatId, ChatIndex, ChatMessage, ChatMeta, MessageId, MessageRole, SyncAction,
+    SyncEntityType,
 };
 use crate::providers::personalized_file_storage::PersonalizedFileStorage;
 use crate::providers::sync_ledger::SyncLedgerStorage;
@@ -56,6 +57,28 @@ impl ChatStorage {
 
     fn chat_meta_path(&self) -> String {
         format!("chats/{}/chat-meta.yaml", self.chat_id)
+    }
+
+    fn chat_facts_path(&self) -> String {
+        format!("chats/{}/context.yaml", self.chat_id)
+    }
+
+    pub async fn get_chat_facts(&self) -> ChatStorageResult<Option<ChatFacts>> {
+        let path = self.chat_facts_path();
+        if !self.file_storage.exists(&path).await? {
+            return Ok(None);
+        }
+        let data = self.file_storage.get(&path).await?;
+        let yaml_str = String::from_utf8(data)?;
+        let facts: ChatFacts = serde_yaml::from_str(&yaml_str)?;
+        Ok(Some(facts))
+    }
+
+    pub async fn save_chat_facts(&self, facts: &ChatFacts) -> ChatStorageResult<()> {
+        let path = self.chat_facts_path();
+        let yaml = serde_yaml::to_string(facts)?;
+        self.file_storage.put(&path, yaml.as_bytes()).await?;
+        Ok(())
     }
 
     fn message_path(&self, message_id: &MessageId) -> String {

@@ -21,3 +21,11 @@ port = 1025
 use_tls = false
 username = "admin"
 password = "admin"
+from_email = "noreply@example.com"
+
+[pipes]
+api_base_url = "http://localhost:11434/v1"
+api_key = ""
+models = [
+    { id = "qwen3:32b", name = "Qwen 3 32B" },
+]

@@ -1,0 +1,12 @@
+{
+  "name": "hjkl-chat",
+  "private": true,
+  "scripts": {
+    "e2e": "npx playwright test",
+    "e2e:headed": "npx playwright test --headed",
+    "e2e:ui": "npx playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.0"
+  }
+}

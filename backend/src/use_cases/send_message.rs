@@ -1,8 +1,13 @@
-use crate::models::chat::{ChatId, ChatMessage, MessageId, MessageRole, UserId};
+use crate::config::PipesConfig;
+use crate::models::chat::{
+    ChatFacts, ChatId, ChatMessage, MessageId, MessageRole, UserMemory, UserId,
+};
 use crate::providers::chat_storage::ChatStorageError;
-use crate::providers::echo_executor::EchoExecutor;
+use crate::providers::llm;
 use crate::providers::personalized_chat_storage::PersonalizedChatStorage;
+use crate::providers::personalized_file_storage::PersonalizedFileStorage;
 use crate::providers::websocket::{LlmTokenKind, WebSocketProvider, WsOutMessage};
+use crate::use_cases::extract_facts;
 use arti_pipes::executor::PromptExecutor;
 use chrono::Utc;
 use futures::StreamExt;
@@ -37,27 +42,33 @@ pub struct Output {
 
 pub async fn command(
     storage: &PersonalizedChatStorage,
+    file_storage: PersonalizedFileStorage,
     ws: Arc<WebSocketProvider>,
     user_id: UserId,
     chat_id: ChatId,
     input: Input,
+    pipes_config: PipesConfig,
 ) -> Result<Output, Error> {
     let chat_storage = storage.get_chat_storage(chat_id);
 
     let _sent_message = chat_storage.send_message(input.message_id).await?;
 
-    let messages = chat_storage.get_all_messages().await?;
+    let chat_facts = chat_storage.get_chat_facts().await?;
+    let user_memory = file_storage.get_user_memory().await.ok().flatten();
+    let messages = chat_storage.get_last_n(20).await?;
 
     let assistant_message_id = Uuid::new_v4();
-    let _model = input.model;
+    let model = input.model;
+
+    let config_for_task = pipes_config.clone();
 
     tokio::spawn(async move {
         // Allow the HTTP response to reach the client before streaming tokens,
         // so the client can set up the assistant message bubble first.
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-        let executor = EchoExecutor;
-        let prompt_text = build_prompt_text(&messages);
+        let executor = llm::create_executor(&pipes_config, &model);
+        let prompt_text = build_prompt_text(&chat_facts, &user_memory, &messages);
 
         let result = match executor.execute_raw(prompt_text).await {
             Ok(r) => r,
@@ -165,8 +176,23 @@ pub async fn command(
                     },
                 )
                 .await;
+                return;
             }
         }
+
+        // Extract facts in background — don't block the user
+        let all_messages = match chat_storage.get_last_n(20).await {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Failed to load messages for fact extraction: {}", e);
+                return;
+            }
+        };
+        let existing_facts = chat_storage.get_chat_facts().await.ok().flatten();
+        tokio::spawn(async move {
+            extract_facts::command(chat_storage, config_for_task, all_messages, existing_facts)
+                .await;
+        });
     });
 
     Ok(Output {
@@ -174,10 +200,36 @@ pub async fn command(
     })
 }
 
-fn build_prompt_text(messages: &[ChatMessage]) -> String {
-    use crate::models::chat::MessageRole;
+fn build_prompt_text(
+    chat_facts: &Option<ChatFacts>,
+    user_memory: &Option<UserMemory>,
+    messages: &[ChatMessage],
+) -> String {
+    let mut prompt = String::from("<|system|>\nYou are a helpful assistant.\n");
 
-    let mut prompt = String::new();
+    if let Some(facts) = chat_facts {
+        prompt.push_str("\n## Chat context\n");
+        if !facts.summary.is_empty() {
+            prompt.push_str(&facts.summary);
+            prompt.push('\n');
+        }
+        if !facts.facts.is_empty() {
+            prompt.push_str("Facts: ");
+            prompt.push_str(&facts.facts.join("; "));
+            prompt.push('\n');
+        }
+    }
+
+    if let Some(memory) = user_memory {
+        if !memory.facts.is_empty() {
+            prompt.push_str("\n## About the user\n");
+            prompt.push_str(&memory.facts.join("\n"));
+            prompt.push('\n');
+        }
+    }
+
+    prompt.push_str("\n<|conversation|>\n");
+
     for msg in messages {
         match msg.role {
             MessageRole::User => {

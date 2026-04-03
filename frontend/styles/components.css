@@ -427,6 +427,43 @@ body {
   transform: scale(0.95);
 }
 
+.chat-page__menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.chat-page__menu-popup {
+  position: absolute;
+  top: calc(var(--size-chat-header-height) + var(--spacing-xs));
+  right: var(--spacing-md);
+  z-index: 101;
+  min-width: 160px;
+  padding: var(--spacing-xs) 0;
+  background: var(--color-bg-surface);
+  border: var(--stroke-default) solid var(--color-input-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+}
+
+.chat-page__menu-item {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  background: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.chat-page__menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
 .chat-page__header-title {
   min-width: 60%;
   height: var(--size-chat-header-height);
@@ -514,6 +551,7 @@ body {
   word-wrap: break-word;
   white-space: pre-wrap;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .chat-bubble--user {
@@ -535,26 +573,63 @@ body {
   white-space: pre-wrap;
 }
 
-.chat-bubble__reasoning {
-  margin-bottom: var(--spacing-xs);
+.chat-bubble__content--hidden {
+  display: none;
 }
 
-.chat-bubble__reasoning-toggle {
-  background: none;
-  border: none;
-  color: var(--color-link);
+.chat-bubble__content--querying {
+  animation: querying-blink 2s ease-in-out infinite;
+}
+
+@keyframes querying-blink {
+  0%, 100% { color: var(--color-text-primary); }
+  50% { color: var(--color-text-inverse); }
+}
+
+/* Thinking badge — sits on the top border of the assistant bubble */
+.chat-bubble__thinking-badge {
+  position: absolute;
+  top: -10px;
+  left: var(--spacing-md);
+  padding: 1px var(--spacing-sm);
   font-size: var(--font-size-xs);
+  line-height: 1.4;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-chat-bubble-assistant);
+  border: var(--stroke-default) solid var(--color-chat-bubble-assistant-border);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
+  white-space: nowrap;
+  z-index: 1;
 }
 
-.chat-bubble__reasoning-toggle:hover {
+.chat-bubble__thinking-badge--active {
+  color: var(--color-link);
+}
+
+.chat-bubble__thinking-badge:hover {
   color: var(--color-link-hover);
 }
 
+/* Thinking inline label — inside bubble during thinking phase */
+.chat-bubble__thinking-inline {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-xs) 0;
+}
+
+.chat-bubble__thinking-inline--active {
+  color: var(--color-link);
+}
+
+.chat-bubble__thinking-inline:hover {
+  color: var(--color-link-hover);
+}
+
+/* Thinking content — shown inline above message content */
 .chat-bubble__reasoning-content {
-  margin-top: var(--spacing-xs);
+  margin: 0 0 var(--spacing-xs) 0;
   padding: var(--spacing-sm);
   background-color: rgba(0, 0, 0, 0.05);
   border-radius: var(--radius-sm);
@@ -565,6 +640,41 @@ body {
   font-family: var(--font-mono, monospace);
   max-height: 200px;
   overflow-y: auto;
+}
+
+.chat-bubble__reasoning-content--clickable {
+  cursor: pointer;
+}
+
+/* During live thinking — no height cap */
+.chat-bubble__reasoning-content--live {
+  max-height: none;
+}
+
+/* Delimiter between thinking and content */
+.chat-bubble__thinking-delimiter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.chat-bubble__thinking-delimiter::before,
+.chat-bubble__thinking-delimiter::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed var(--color-chat-bubble-assistant-border);
+}
+
+.chat-bubble__thinking-delimiter span {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chat-bubble__thinking-delimiter span:hover {
+  color: var(--color-link-hover);
 }
 
 /* ===== Chat Input ===== */

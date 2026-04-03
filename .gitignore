@@ -42,5 +42,10 @@ temp-*.sqlite3
 dist/
 .frontmatter/
 
+# Node / Playwright
+node_modules/
+test-results/
+playwright-report/
+
 # Logs
 *.log

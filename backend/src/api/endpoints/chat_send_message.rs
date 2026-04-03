@@ -3,6 +3,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::ApiResponse;
+use crate::config::Config;
 use crate::providers::personalized_chat_storage::PersonalizedChatStorage;
 use crate::providers::personalized_file_storage::PersonalizedFileStorage;
 use crate::providers::websocket::WebSocketProvider;
@@ -12,6 +13,7 @@ pub async fn handler(
     storage: PersonalizedChatStorage,
     file_storage: PersonalizedFileStorage,
     ws: web::Data<Arc<WebSocketProvider>>,
+    config: web::Data<Config>,
     path: web::Path<Uuid>,
     body: web::Json<send_message::Input>,
 ) -> impl Responder {
@@ -20,10 +22,12 @@ pub async fn handler(
 
     let result: ApiResponse<_> = send_message::command(
         &storage,
+        file_storage,
         ws.get_ref().clone(),
         user_id,
         chat_id,
         body.into_inner(),
+        config.pipes.clone(),
     )
     .await
     .into();

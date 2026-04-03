@@ -1,4 +1,5 @@
 pub mod change_password;
+pub mod extract_facts;
 pub mod get_file_keywords;
 pub mod get_profile;
 pub mod get_toc;

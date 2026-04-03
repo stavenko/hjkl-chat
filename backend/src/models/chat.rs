@@ -46,6 +46,23 @@ pub struct ChatSummary {
     pub created_at: DateTime<Utc>,
 }
 
+// --- Context models ---
+
+/// Stored at chats/{chat_id}/context.yaml
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatFacts {
+    pub summary: String,
+    pub facts: Vec<String>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Stored at user-memory.yaml (per-user, not per-chat)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserMemory {
+    pub facts: Vec<String>,
+    pub updated_at: DateTime<Utc>,
+}
+
 // --- Sync models ---
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
